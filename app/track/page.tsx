@@ -133,6 +133,13 @@ function TrackContent() {
                 </div>
               </div>
 
+              {order.delivery_note && (
+  <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl p-4">
+    <p className="font-bold mb-2">Delivery Content</p>
+    <p className="whitespace-pre-wrap">{order.delivery_note}</p>
+  </div>
+)}
+              
               <div className="bg-blue-50 border border-blue-200 text-blue-700 rounded-xl p-4 text-sm">
                 If your payment has been submitted, please wait for manual
                 verification and delivery.

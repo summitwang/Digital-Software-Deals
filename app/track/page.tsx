@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 
 type Order = {
+  delivery_note?: string;
   order_no: string;
   product: string;
   amount: number;

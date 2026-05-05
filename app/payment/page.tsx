@@ -1,9 +1,8 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
 
 type Product = {
   id: string;
@@ -15,7 +14,7 @@ type Product = {
   sales: number;
 };
 
-export default function PaymentPage() {
+function PaymentPageContent() {
   const searchParams = useSearchParams();
   const productId = searchParams.get("productId");
 
@@ -289,5 +288,12 @@ export default function PaymentPage() {
         </div>
       </div>
     </main>
+  );
+}
+export default function PaymentPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <PaymentPageContent />
+    </Suspense>
   );
 }

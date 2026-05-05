@@ -5,11 +5,19 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 
 type Order = {
-  delivery_note?: string;
   order_no: string;
   product: string;
   amount: number;
   status: string;
+  product_type?: string;
+  license_key?: string;
+  error_code?: string;
+  installation_id?: string;
+  confirmation_id?: string;
+  account_email?: string;
+  account_password?: string;
+  tutorial_link?: string;
+  delivery_note?: string;
   created_at: string;
 };
 
@@ -21,6 +29,10 @@ function TrackContent() {
   const [order, setOrder] = useState<Order | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const [customerErrorCode, setCustomerErrorCode] = useState("");
+  const [customerInstallationId, setCustomerInstallationId] = useState("");
+  const [submittingInfo, setSubmittingInfo] = useState(false);
 
   async function searchOrder(value?: string) {
     const targetOrder = value || orderNo;
@@ -47,6 +59,39 @@ function TrackContent() {
     }
 
     setOrder(data.order);
+    setCustomerErrorCode(data.order.error_code || "");
+    setCustomerInstallationId(data.order.installation_id || "");
+  }
+
+  async function submitActivationInfo() {
+    if (!order) return;
+
+    if (!customerErrorCode && !customerInstallationId) {
+      alert("Please enter error code or Installation ID");
+      return;
+    }
+
+    setSubmittingInfo(true);
+
+    const res = await fetch("/api/track", {
+      method: "PATCH",
+      body: JSON.stringify({
+        order_no: order.order_no,
+        error_code: customerErrorCode,
+        installation_id: customerInstallationId,
+      }),
+    });
+
+    const data = await res.json();
+    setSubmittingInfo(false);
+
+    if (!res.ok) {
+      alert(data.error || "Submit failed");
+      return;
+    }
+
+    alert("Information submitted successfully");
+    searchOrder(order.order_no);
   }
 
   useEffect(() => {
@@ -66,7 +111,8 @@ function TrackContent() {
           <h1 className="text-3xl font-extrabold mb-2">Track Your Order</h1>
 
           <p className="text-slate-600 mb-8">
-            Enter your order ID to check payment and delivery status.
+            Enter your order ID to check payment, activation and delivery
+            status.
           </p>
 
           <div className="flex flex-col md:flex-row gap-3 mb-6">
@@ -102,44 +148,101 @@ function TrackContent() {
               </div>
 
               <div className="grid md:grid-cols-2 gap-4">
-                <div className="bg-white border rounded-xl p-4">
-                  <p className="text-slate-500 text-sm">Product</p>
-                  <p className="font-bold">{order.product}</p>
-                </div>
-
-                <div className="bg-white border rounded-xl p-4">
-                  <p className="text-slate-500 text-sm">Amount</p>
-                  <p className="font-bold">${order.amount} USDT</p>
-                </div>
-
-                <div className="bg-white border rounded-xl p-4">
-                  <p className="text-slate-500 text-sm">Status</p>
-                  <p
-                    className={`font-extrabold uppercase ${
-                      order.status === "completed"
-                        ? "text-emerald-600"
-                        : "text-yellow-600"
-                    }`}
-                  >
-                    {order.status}
-                  </p>
-                </div>
-
-                <div className="bg-white border rounded-xl p-4">
-                  <p className="text-slate-500 text-sm">Created At</p>
-                  <p className="font-bold">
-                    {new Date(order.created_at).toLocaleString()}
-                  </p>
-                </div>
+                <Info label="Product" value={order.product} />
+                <Info label="Amount" value={`$${order.amount} USDT`} />
+                <Info label="Status" value={order.status.toUpperCase()} />
+                <Info
+                  label="Created At"
+                  value={new Date(order.created_at).toLocaleString()}
+                />
               </div>
 
+              {order.license_key && (
+                <DeliveryBox title="License Key" value={order.license_key} />
+              )}
+
+              {(order.account_email || order.account_password) && (
+                <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl p-4">
+                  <p className="font-bold mb-2">Account Delivery</p>
+                  {order.account_email && (
+                    <p>Email: {order.account_email}</p>
+                  )}
+                  {order.account_password && (
+                    <p>Password: {order.account_password}</p>
+                  )}
+                </div>
+              )}
+
+              {order.confirmation_id && (
+                <DeliveryBox
+                  title="Confirmation ID"
+                  value={order.confirmation_id}
+                />
+              )}
+
+              {order.tutorial_link && (
+                <div className="bg-blue-50 border border-blue-200 text-blue-700 rounded-xl p-4">
+                  <p className="font-bold mb-2">Tutorial / Guide</p>
+                  <a
+                    href={order.tutorial_link}
+                    target="_blank"
+                    className="underline break-all"
+                  >
+                    {order.tutorial_link}
+                  </a>
+                </div>
+              )}
+
               {order.delivery_note && (
-  <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl p-4">
-    <p className="font-bold mb-2">Delivery Content</p>
-    <p className="whitespace-pre-wrap">{order.delivery_note}</p>
-  </div>
-)}
-              
+                <DeliveryBox
+                  title="Delivery Note"
+                  value={order.delivery_note}
+                />
+              )}
+
+              {(order.product_type === "windows_key" ||
+                order.product_type === "office_key" ||
+                order.status === "key_sent" ||
+                order.status === "need_install_id") && (
+                <div className="bg-yellow-50 border border-yellow-300 rounded-xl p-5">
+                  <h3 className="font-extrabold mb-3">
+                    Activation Help / Submit Error Code or Installation ID
+                  </h3>
+
+                  <p className="text-sm text-slate-600 mb-4">
+                    If activation fails, please submit the error code or
+                    Installation ID here. We will check it and provide a
+                    Confirmation ID if phone activation is required.
+                  </p>
+
+                  <div className="space-y-3">
+                    <input
+                      className="w-full border p-4 rounded-xl"
+                      placeholder="Error Code, e.g. 0xC004C008"
+                      value={customerErrorCode}
+                      onChange={(e) => setCustomerErrorCode(e.target.value)}
+                    />
+
+                    <textarea
+                      className="w-full border p-4 rounded-xl min-h-[120px]"
+                      placeholder="Installation ID"
+                      value={customerInstallationId}
+                      onChange={(e) =>
+                        setCustomerInstallationId(e.target.value)
+                      }
+                    />
+
+                    <button
+                      onClick={submitActivationInfo}
+                      disabled={submittingInfo}
+                      className="bg-black text-white px-6 py-3 rounded-xl font-bold"
+                    >
+                      {submittingInfo ? "Submitting..." : "Submit Info"}
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <div className="bg-blue-50 border border-blue-200 text-blue-700 rounded-xl p-4 text-sm">
                 If your payment has been submitted, please wait for manual
                 verification and delivery.
@@ -149,6 +252,24 @@ function TrackContent() {
         </div>
       </div>
     </main>
+  );
+}
+
+function Info({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="bg-white border rounded-xl p-4">
+      <p className="text-slate-500 text-sm">{label}</p>
+      <p className="font-bold break-all">{value}</p>
+    </div>
+  );
+}
+
+function DeliveryBox({ title, value }: { title: string; value: string }) {
+  return (
+    <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl p-4">
+      <p className="font-bold mb-2">{title}</p>
+      <p className="whitespace-pre-wrap break-all">{value}</p>
+    </div>
   );
 }
 

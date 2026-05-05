@@ -1,111 +1,90 @@
 import { NextResponse } from "next/server";
-import { promises as fs } from "fs";
-import path from "path";
-import { cookies } from "next/headers";
+import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
-export const runtime = "nodejs";
-
-type ProductType = "license_key" | "office365_account" | "subscription";
-
-type Product = {
-  id: string;
-  title: string;
-  price: string;
-  productType: ProductType;
-  image: string;
-  description: string;
-  sales: number;
-  createdAt: string;
-};
-
-const filePath = path.join(process.cwd(), "data", "products.json");
-
-async function isAdminLogin() {
-  const cookieStore = await cookies();
-  return cookieStore.get("admin_login")?.value === "yes";
-}
-
-async function readProducts(): Promise<Product[]> {
-  try {
-    const data = await fs.readFile(filePath, "utf8");
-    return JSON.parse(data);
-  } catch {
-    return [];
-  }
-}
-
-async function writeProducts(products: Product[]) {
-  await fs.writeFile(filePath, JSON.stringify(products, null, 2));
+function checkPassword(password: string) {
+  return password === process.env.ADMIN_PASSWORD;
 }
 
 export async function GET() {
-  const products = await readProducts();
-  return NextResponse.json(products);
-}
+  const { data, error } = await supabaseAdmin
+    .from("products")
+    .select("*")
+    .eq("is_active", true)
+    .order("created_at", { ascending: false });
 
-export async function POST(request: Request) {
-  if (!(await isAdminLogin())) {
-    return new Response("Unauthorized", { status: 401 });
+  if (error) {
+    return NextResponse.json(
+      { error: error.message },
+      { status: 500 }
+    );
   }
 
-  const body = await request.json();
-  const products = await readProducts();
-
-  const newProduct: Product = {
-    id: "PROD-" + Date.now(),
-    title: body.title,
-    price: body.price,
-    productType: body.productType,
-    image: body.image || "",
-    description: body.description || "",
-    sales: Number(body.sales || 0),
-    createdAt: new Date().toLocaleString(),
-  };
-
-  products.unshift(newProduct);
-  await writeProducts(products);
-
-  return NextResponse.json({ success: true, product: newProduct });
+  return NextResponse.json({ products: data || [] });
 }
 
-export async function PATCH(request: Request) {
-  if (!(await isAdminLogin())) {
-    return new Response("Unauthorized", { status: 401 });
+export async function POST(req: Request) {
+  const body = await req.json();
+
+  if (!checkPassword(body.password)) {
+    return NextResponse.json(
+      { error: "Unauthorized" },
+      { status: 401 }
+    );
   }
 
-  const body = await request.json();
-  const products = await readProducts();
+  const { title, description, price, image_url, tag, product_type, sold_count } =
+    body;
 
-  const updatedProducts = products.map((product) => {
-    if (product.id !== body.id) return product;
+  const { data, error } = await supabaseAdmin
+    .from("products")
+    .insert([
+      {
+        title,
+        description,
+        price: Number(price),
+        image_url,
+        tag,
+        product_type,
+        sold_count: Number(sold_count || 0),
+        is_active: true,
+      },
+    ])
+    .select()
+    .single();
 
-    return {
-      ...product,
-      title: body.title ?? product.title,
-      price: body.price ?? product.price,
-      productType: body.productType ?? product.productType,
-      image: body.image ?? product.image,
-      description: body.description ?? product.description,
-      sales: body.sales !== undefined ? Number(body.sales) : product.sales,
-    };
-  });
+  if (error) {
+    return NextResponse.json(
+      { error: error.message },
+      { status: 500 }
+    );
+  }
 
-  await writeProducts(updatedProducts);
-
-  return NextResponse.json({ success: true });
+  return NextResponse.json({ success: true, product: data });
 }
 
-export async function DELETE(request: Request) {
-  if (!(await isAdminLogin())) {
-    return new Response("Unauthorized", { status: 401 });
+export async function DELETE(req: Request) {
+  const body = await req.json();
+
+  if (!checkPassword(body.password)) {
+    return NextResponse.json(
+      { error: "Unauthorized" },
+      { status: 401 }
+    );
   }
 
-  const body = await request.json();
-  const products = await readProducts();
+  const { id } = body;
 
-  const updatedProducts = products.filter((product) => product.id !== body.id);
+  const { error } = await supabaseAdmin
+    .from("products")
+    .update({ is_active: false })
+    .eq("id", id);
 
-  await writeProducts(updatedProducts);
+  if (error) {
+    return NextResponse.json(
+      { error: error.message },
+      { status: 500 }
+    );
+  }
 
   return NextResponse.json({ success: true });
 }

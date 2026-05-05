@@ -13,9 +13,38 @@ type Order = {
   address?: string;
   txid?: string;
   status: string;
+  product_type?: string;
+  license_key?: string;
+  error_code?: string;
+  installation_id?: string;
+  confirmation_id?: string;
+  account_email?: string;
+  account_password?: string;
+  tutorial_link?: string;
   delivery_note?: string;
   created_at: string;
 };
+
+const statusOptions = [
+  "pending",
+  "paid",
+  "key_sent",
+  "need_install_id",
+  "cid_sent",
+  "account_sent",
+  "completed",
+  "problem",
+];
+
+const productTypeOptions = [
+  "windows_key",
+  "office_key",
+  "office_account",
+  "adobe_account",
+  "autodesk_account",
+  "gemini_account",
+  "other",
+];
 
 export default function AdminOrdersPage() {
   const [password, setPassword] = useState("");
@@ -59,13 +88,30 @@ export default function AdminOrdersPage() {
     setOrders(data.orders || []);
   }
 
-  async function updateOrder(order: Order) {
+  function updateLocalOrder(index: number, key: keyof Order, value: string) {
+    const newOrders = [...orders];
+    newOrders[index] = {
+      ...newOrders[index],
+      [key]: value,
+    };
+    setOrders(newOrders);
+  }
+
+  async function saveOrder(order: Order) {
     const res = await fetch("/api/admin-orders", {
       method: "PATCH",
       body: JSON.stringify({
         password,
         order_no: order.order_no,
         status: order.status,
+        product_type: order.product_type || "",
+        license_key: order.license_key || "",
+        error_code: order.error_code || "",
+        installation_id: order.installation_id || "",
+        confirmation_id: order.confirmation_id || "",
+        account_email: order.account_email || "",
+        account_password: order.account_password || "",
+        tutorial_link: order.tutorial_link || "",
         delivery_note: order.delivery_note || "",
       }),
     });
@@ -77,8 +123,37 @@ export default function AdminOrdersPage() {
       return;
     }
 
-    alert("Order updated");
+    alert("Order saved");
     loadOrders();
+  }
+
+  function renderTypeHelp(type?: string) {
+    if (type === "windows_key" || type === "office_key") {
+      return (
+        <div className="bg-blue-50 border border-blue-200 text-blue-700 rounded-xl p-4 text-sm">
+          Key 产品流程：先发 License Key + 教程；如果客户激活失败，让客户提交错误代码或 Installation ID；然后你填写 Confirmation ID。
+        </div>
+      );
+    }
+
+    if (
+      type === "adobe_account" ||
+      type === "autodesk_account" ||
+      type === "office_account" ||
+      type === "gemini_account"
+    ) {
+      return (
+        <div className="bg-purple-50 border border-purple-200 text-purple-700 rounded-xl p-4 text-sm">
+          Account 产品流程：填写账号、密码和教程链接。Adobe / Autodesk 如果需要客户邮箱，可参考订单里的 customer email / notes。
+        </div>
+      );
+    }
+
+    return (
+      <div className="bg-slate-50 border rounded-xl p-4 text-sm text-slate-600">
+        请选择产品类型，然后按对应字段处理订单。
+      </div>
+    );
   }
 
   if (!loggedIn) {
@@ -108,12 +183,12 @@ export default function AdminOrdersPage() {
 
   return (
     <main className="min-h-screen bg-slate-100 px-6 py-10">
-      <div className="max-w-6xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
+      <div className="max-w-7xl mx-auto">
+        <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-8">
           <div>
             <h1 className="text-3xl font-extrabold">Order Management</h1>
             <p className="text-slate-600 mt-2">
-              View orders, verify payment, and enter delivery content.
+              按产品类型处理订单、填写密钥/账号/确认ID/教程。
             </p>
           </div>
 
@@ -136,7 +211,7 @@ export default function AdminOrdersPage() {
         <div className="space-y-6">
           {orders.map((order, index) => (
             <div key={order.id} className="bg-white border rounded-3xl p-6 shadow">
-              <div className="flex justify-between gap-4 mb-5">
+              <div className="flex flex-col md:flex-row md:justify-between gap-4 mb-5">
                 <div>
                   <p className="text-sm text-slate-500">Order ID</p>
                   <p className="text-xl font-extrabold text-emerald-600">
@@ -144,7 +219,7 @@ export default function AdminOrdersPage() {
                   </p>
                 </div>
 
-                <div className="text-right">
+                <div className="md:text-right">
                   <p className="text-sm text-slate-500">Created At</p>
                   <p className="font-bold">
                     {new Date(order.created_at).toLocaleString()}
@@ -153,73 +228,117 @@ export default function AdminOrdersPage() {
               </div>
 
               <div className="grid md:grid-cols-2 gap-4 mb-5">
-                <div className="bg-slate-50 border rounded-xl p-4">
-                  <p className="text-sm text-slate-500">Product</p>
-                  <p className="font-bold">{order.product}</p>
-                </div>
-
-                <div className="bg-slate-50 border rounded-xl p-4">
-                  <p className="text-sm text-slate-500">Amount</p>
-                  <p className="font-bold">${order.amount} USDT</p>
-                </div>
-
-                <div className="bg-slate-50 border rounded-xl p-4">
-                  <p className="text-sm text-slate-500">Customer Email</p>
-                  <p className="font-bold">{order.customer_email || "-"}</p>
-                </div>
-
-                <div className="bg-slate-50 border rounded-xl p-4">
-                  <p className="text-sm text-slate-500">Customer Name</p>
-                  <p className="font-bold">{order.customer_name || "-"}</p>
-                </div>
-
-                <div className="bg-slate-50 border rounded-xl p-4 md:col-span-2">
-                  <p className="text-sm text-slate-500">TxID</p>
-                  <p className="font-bold break-all">{order.txid || "-"}</p>
-                </div>
-
-                <div className="bg-slate-50 border rounded-xl p-4 md:col-span-2">
-                  <p className="text-sm text-slate-500">Notes / Account Info</p>
-                  <p className="font-bold">{order.address || "-"}</p>
-                </div>
+                <Info label="Product" value={order.product} />
+                <Info label="Amount" value={`$${order.amount} USDT`} />
+                <Info label="Customer Email" value={order.customer_email || "-"} />
+                <Info label="Customer Name" value={order.customer_name || "-"} />
+                <Info label="TxID" value={order.txid || "-"} wide />
+                <Info label="Customer Notes / Account Info" value={order.address || "-"} wide />
               </div>
 
-              <div className="grid md:grid-cols-2 gap-4">
+              <div className="grid md:grid-cols-2 gap-4 mb-5">
                 <div>
-                  <label className="block font-bold mb-2">Order Status</label>
+                  <label className="block font-bold mb-2">Product Type</label>
                   <select
                     className="w-full border p-4 rounded-xl"
-                    value={order.status}
-                    onChange={(e) => {
-                      const newOrders = [...orders];
-                      newOrders[index].status = e.target.value;
-                      setOrders(newOrders);
-                    }}
+                    value={order.product_type || "other"}
+                    onChange={(e) =>
+                      updateLocalOrder(index, "product_type", e.target.value)
+                    }
                   >
-                    <option value="pending">Pending</option>
-                    <option value="paid">Paid</option>
-                    <option value="completed">Completed</option>
-                    <option value="cancelled">Cancelled</option>
+                    {productTypeOptions.map((type) => (
+                      <option key={type} value={type}>
+                        {type}
+                      </option>
+                    ))}
                   </select>
                 </div>
 
                 <div>
-                  <label className="block font-bold mb-2">Delivery Content</label>
+                  <label className="block font-bold mb-2">Order Status</label>
+                  <select
+                    className="w-full border p-4 rounded-xl"
+                    value={order.status || "pending"}
+                    onChange={(e) =>
+                      updateLocalOrder(index, "status", e.target.value)
+                    }
+                  >
+                    {statusOptions.map((status) => (
+                      <option key={status} value={status}>
+                        {status}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="mb-5">{renderTypeHelp(order.product_type)}</div>
+
+              <div className="grid md:grid-cols-2 gap-4">
+                <Field
+                  label="License Key"
+                  value={order.license_key || ""}
+                  placeholder="Windows / Office Key"
+                  onChange={(v) => updateLocalOrder(index, "license_key", v)}
+                />
+
+                <Field
+                  label="Error Code"
+                  value={order.error_code || ""}
+                  placeholder="Customer activation error code"
+                  onChange={(v) => updateLocalOrder(index, "error_code", v)}
+                />
+
+                <Field
+                  label="Installation ID"
+                  value={order.installation_id || ""}
+                  placeholder="Customer Installation ID"
+                  onChange={(v) => updateLocalOrder(index, "installation_id", v)}
+                />
+
+                <Field
+                  label="Confirmation ID"
+                  value={order.confirmation_id || ""}
+                  placeholder="Confirmation ID after phone activation"
+                  onChange={(v) => updateLocalOrder(index, "confirmation_id", v)}
+                />
+
+                <Field
+                  label="Account Email"
+                  value={order.account_email || ""}
+                  placeholder="Account email to deliver"
+                  onChange={(v) => updateLocalOrder(index, "account_email", v)}
+                />
+
+                <Field
+                  label="Account Password"
+                  value={order.account_password || ""}
+                  placeholder="Account password"
+                  onChange={(v) => updateLocalOrder(index, "account_password", v)}
+                />
+
+                <Field
+                  label="Tutorial Link"
+                  value={order.tutorial_link || ""}
+                  placeholder="Usage tutorial / activation guide URL"
+                  onChange={(v) => updateLocalOrder(index, "tutorial_link", v)}
+                />
+
+                <div>
+                  <label className="block font-bold mb-2">Delivery Note</label>
                   <textarea
-                    className="w-full border p-4 rounded-xl min-h-[120px]"
-                    placeholder="Enter account / key / activation instruction..."
+                    className="w-full border p-4 rounded-xl min-h-[140px]"
+                    placeholder="Extra delivery instructions..."
                     value={order.delivery_note || ""}
-                    onChange={(e) => {
-                      const newOrders = [...orders];
-                      newOrders[index].delivery_note = e.target.value;
-                      setOrders(newOrders);
-                    }}
+                    onChange={(e) =>
+                      updateLocalOrder(index, "delivery_note", e.target.value)
+                    }
                   />
                 </div>
               </div>
 
               <button
-                onClick={() => updateOrder(order)}
+                onClick={() => saveOrder(order)}
                 className="mt-5 bg-emerald-500 hover:bg-emerald-400 text-black px-6 py-3 rounded-xl font-extrabold"
               >
                 Save Order
@@ -235,5 +354,46 @@ export default function AdminOrdersPage() {
         </div>
       </div>
     </main>
+  );
+}
+
+function Info({
+  label,
+  value,
+  wide,
+}: {
+  label: string;
+  value: string;
+  wide?: boolean;
+}) {
+  return (
+    <div className={`bg-slate-50 border rounded-xl p-4 ${wide ? "md:col-span-2" : ""}`}>
+      <p className="text-sm text-slate-500">{label}</p>
+      <p className="font-bold break-all">{value}</p>
+    </div>
+  );
+}
+
+function Field({
+  label,
+  value,
+  placeholder,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  placeholder: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <div>
+      <label className="block font-bold mb-2">{label}</label>
+      <input
+        className="w-full border p-4 rounded-xl"
+        placeholder={placeholder}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      />
+    </div>
   );
 }

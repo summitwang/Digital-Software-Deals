@@ -1,173 +1,151 @@
-"use client";
-
 import Link from "next/link";
-import { useEffect, useState } from "react";
 
-type Product = {
-  id: string;
-  title: string;
-  price: string;
-  image: string;
-  sales?: number;
-};
-
-type Review = {
-  id: string;
-  productId: string;
-  name: string;
-  rating: number;
-  comment: string;
-};
+const products = [
+  {
+    id: "office-365",
+    title: "Office 365 Account",
+    desc: "Office apps + OneDrive cloud storage. Fast delivery after payment.",
+    price: "19.99",
+    tag: "Best Seller",
+    sold: "2.3k sold",
+  },
+  {
+    id: "windows-11-pro",
+    title: "Windows 11 Pro Key",
+    desc: "Activation key for Windows 11 Pro. Suitable for personal PC use.",
+    price: "14.99",
+    tag: "Hot Deal",
+    sold: "1.8k sold",
+  },
+  {
+    id: "adobe-autodesk",
+    title: "Adobe / Autodesk Account",
+    desc: "Subscription account service. Customer email may be required.",
+    price: "29.99",
+    tag: "Popular",
+    sold: "980 sold",
+  },
+];
 
 export default function HomePage() {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [reviews, setReviews] = useState<Review[]>([]);
-  const [timeLeft, setTimeLeft] = useState("");
-
-  useEffect(() => {
-    loadData();
-
-    const timer = setInterval(() => {
-      const now = new Date();
-      const end = new Date();
-      end.setHours(23, 59, 59, 999);
-
-      const diff = end.getTime() - now.getTime();
-      const h = Math.floor(diff / 1000 / 60 / 60);
-      const m = Math.floor((diff / 1000 / 60) % 60);
-      const s = Math.floor((diff / 1000) % 60);
-
-      setTimeLeft(`${h}h ${m}m ${s}s`);
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, []);
-
-  async function loadData() {
-    const productRes = await fetch("/api/products");
-    const productData = await productRes.json();
-    setProducts(productData);
-
-    const reviewRes = await fetch("/api/reviews");
-    const reviewData = await reviewRes.json();
-    setReviews(reviewData);
-  }
-
-  const hotProducts = products.slice(0, 6);
-  const previewReviews = reviews.slice(0, 3);
-
   return (
     <main className="min-h-screen bg-slate-50">
-      <section className="bg-gradient-to-r from-black via-slate-900 to-black text-white">
-        <div className="max-w-6xl mx-auto px-6 py-16 grid md:grid-cols-2 gap-10 items-center">
+      <nav className="flex items-center justify-between px-6 py-4 bg-white shadow-sm">
+        <div className="text-xl font-bold">Digital Software Deals</div>
+        <div className="flex gap-5 text-sm">
+          <Link href="/">Home</Link>
+          <Link href="#products">Products</Link>
+          <Link href="/track">Track Order</Link>
+          <Link href="/contact">Contact</Link>
+        </div>
+      </nav>
+
+      <section className="bg-gradient-to-br from-black via-slate-950 to-slate-900 text-white px-6 py-20">
+        <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-10 items-center">
           <div>
-            <div className="inline-block bg-red-500 text-white px-4 py-2 rounded-full text-sm font-bold mb-5">
-              🔥 Today Deal Ends In {timeLeft}
+            <div className="inline-block bg-red-500 px-5 py-2 rounded-full text-sm font-bold mb-6">
+              🔥 Today Deal Ends Soon
             </div>
 
-            <h1 className="text-4xl md:text-5xl font-bold mb-5">
+            <h1 className="text-5xl font-extrabold mb-6">
               Digital Software Deals
             </h1>
 
-            <p className="text-slate-300 text-lg mb-8">
-              Windows, Office, Adobe and Autodesk products with order tracking
-              and after-sales support.
+            <p className="text-xl text-slate-200 mb-8">
+              Windows, Office, Adobe and Autodesk products with fast delivery,
+              order tracking and after-sales support.
             </p>
 
-            <div className="flex flex-wrap gap-4">
-              <Link
-                href="/products"
-                className="bg-white text-black px-7 py-4 rounded-xl font-bold"
+            <div className="flex gap-4">
+              <a
+                href="#products"
+                className="bg-white text-black px-8 py-4 rounded-xl font-bold hover:bg-slate-200"
               >
                 Shop Now
-              </Link>
+              </a>
 
               <Link
                 href="/track"
-                className="border border-white px-7 py-4 rounded-xl"
+                className="border border-white px-8 py-4 rounded-xl font-bold hover:bg-white hover:text-black"
               >
                 Track Order
               </Link>
             </div>
           </div>
 
-          <div className="bg-white/10 border border-white/20 rounded-3xl p-6">
-            <h2 className="text-xl font-bold mb-4">Why customers choose us</h2>
-            <div className="space-y-3 text-sm text-slate-200">
-              <p>✅ Fast order processing</p>
-              <p>✅ Multiple product types supported</p>
-              <p>✅ Customer order tracking</p>
-              <p>✅ Support after purchase</p>
-            </div>
+          <div className="bg-white/10 border border-white/20 rounded-3xl p-8">
+            <h2 className="text-2xl font-bold mb-5">
+              Why customers choose us
+            </h2>
+            <ul className="space-y-4 text-slate-100">
+              <li>✅ Fast order processing</li>
+              <li>✅ Multiple product types supported</li>
+              <li>✅ Customer order tracking</li>
+              <li>✅ Support after purchase</li>
+            </ul>
           </div>
         </div>
       </section>
 
-      <section className="max-w-6xl mx-auto px-6 py-8 grid md:grid-cols-4 gap-4 text-center">
-        <div className="bg-white p-5 rounded-2xl shadow">⚡ Fast Delivery</div>
-        <div className="bg-white p-5 rounded-2xl shadow">🔒 Secure Payment</div>
-        <div className="bg-white p-5 rounded-2xl shadow">⭐ Reviews</div>
-        <div className="bg-white p-5 rounded-2xl shadow">💬 Support</div>
+      <section className="max-w-6xl mx-auto px-6 py-10 grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-white rounded-2xl shadow p-5 text-center">⚡ Fast Delivery</div>
+        <div className="bg-white rounded-2xl shadow p-5 text-center">🔒 Secure Payment</div>
+        <div className="bg-white rounded-2xl shadow p-5 text-center">⭐ Reviews</div>
+        <div className="bg-white rounded-2xl shadow p-5 text-center">💬 Support</div>
       </section>
 
-      <section className="max-w-6xl mx-auto px-6 py-10">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold">🔥 Best Sellers</h2>
-
-          <Link href="/products" className="text-blue-600">
+      <section id="products" className="max-w-6xl mx-auto px-6 py-12">
+        <div className="flex items-center justify-between mb-8">
+          <h2 className="text-3xl font-extrabold">🔥 Best Sellers</h2>
+          <Link href="#products" className="text-blue-600 font-semibold">
             View All →
           </Link>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-6">
-          {hotProducts.map((product) => (
+        <div className="grid md:grid-cols-3 gap-8">
+          {products.map((product) => (
             <div
               key={product.id}
-              className="bg-white rounded-3xl shadow hover:shadow-xl transition border overflow-hidden"
+              className="bg-white rounded-3xl shadow-lg overflow-hidden border hover:shadow-2xl transition"
             >
-              <Link href={`/products/${product.id}`}>
-                {product.image ? (
-                  <img
-                    src={product.image}
-                    alt={product.title}
-                    className="w-full h-48 object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-48 bg-slate-100 flex items-center justify-center">
-                    Product Image
+              <div className="h-56 bg-gradient-to-br from-slate-900 to-blue-900 text-white flex items-center justify-center">
+                <div className="text-center px-4">
+                  <div className="text-5xl mb-4">💿</div>
+                  <div className="text-xl font-bold">{product.title}</div>
+                </div>
+              </div>
+
+              <div className="p-6">
+                <div className="flex justify-between items-center mb-3">
+                  <span className="bg-red-100 text-red-600 px-3 py-1 rounded-full text-sm font-bold">
+                    {product.tag}
+                  </span>
+                  <span className="text-sm text-slate-500">{product.sold}</span>
+                </div>
+
+                <h3 className="text-xl font-bold mb-2">{product.title}</h3>
+
+                <p className="text-slate-600 text-sm mb-5">
+                  {product.desc}
+                </p>
+
+                <div className="flex items-center justify-between mb-5">
+                  <div>
+                    <p className="text-sm text-slate-400">Price</p>
+                    <p className="text-3xl font-extrabold text-green-600">
+                      ${product.price}
+                    </p>
                   </div>
-                )}
-              </Link>
-
-              <div className="p-5">
-                <div className="flex gap-2 mb-3">
-                  <span className="bg-red-500 text-white text-xs px-3 py-1 rounded-full">
-                    HOT
-                  </span>
-                  <span className="bg-orange-500 text-white text-xs px-3 py-1 rounded-full">
-                    Best Seller
-                  </span>
+                  <div className="text-yellow-500 text-sm">
+                    ⭐⭐⭐⭐⭐
+                  </div>
                 </div>
 
                 <Link
-                  href={`/products/${product.id}`}
-                  className="font-bold text-lg block mb-3 hover:text-blue-600"
-                >
-                  {product.title}
-                </Link>
-
-                <div className="flex justify-between items-center mb-4">
-                  <span className="text-green-600 font-bold text-lg">
-                    {product.price}
-                  </span>
-                  <span className="text-sm text-slate-500">
-                    Sold: {product.sales || 0}
-                  </span>
-                </div>
-
-                <Link
-                  href={`/payment?productId=${product.id}`}
-                  className="block text-center bg-black text-white py-3 rounded-xl font-semibold"
+                  href={`/payment?product=${encodeURIComponent(
+                    product.title
+                  )}&amount=${product.price}`}
+                  className="block text-center bg-black text-white py-4 rounded-xl font-bold hover:bg-slate-800"
                 >
                   Buy Now
                 </Link>
@@ -177,50 +155,13 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="bg-white py-12 mt-8">
-        <div className="max-w-6xl mx-auto px-6">
-          <h2 className="text-2xl font-bold mb-6 text-center">
-            Customer Reviews
-          </h2>
-
-          {previewReviews.length === 0 ? (
-            <p className="text-center text-slate-500">
-              Customer reviews will appear here.
-            </p>
-          ) : (
-            <div className="grid md:grid-cols-3 gap-6">
-              {previewReviews.map((review) => (
-                <div key={review.id} className="border p-5 rounded-2xl">
-                  <p className="mb-2">{"★".repeat(review.rating)}</p>
-                  <p className="text-sm text-slate-700 mb-3">
-                    {review.comment}
-                  </p>
-                  <p className="text-sm font-semibold">— {review.name}</p>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </section>
-
-      <section className="max-w-6xl mx-auto px-6 py-14">
-        <div className="bg-black text-white rounded-3xl p-8 text-center">
-          <h2 className="text-3xl font-bold mb-4">
-            Ready to complete your order?
-          </h2>
-
-          <p className="text-slate-300 mb-6">
-            Browse available products and submit your order securely.
-          </p>
-
-          <Link
-            href="/products"
-            className="inline-block bg-white text-black px-8 py-4 rounded-xl font-bold"
-          >
-            Browse Products
-          </Link>
-        </div>
-      </section>
+      <a
+        href="https://wa.me/"
+        target="_blank"
+        className="fixed right-6 bottom-6 bg-green-500 text-white w-16 h-16 rounded-full flex items-center justify-center text-3xl shadow-xl"
+      >
+        💬
+      </a>
     </main>
   );
 }

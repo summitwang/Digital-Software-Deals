@@ -6,12 +6,15 @@ export async function GET(req: Request) {
   const orderNo = searchParams.get("orderNo");
 
   if (!orderNo) {
-    return NextResponse.json({ error: "Order number is required" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Order number is required" },
+      { status: 400 }
+    );
   }
 
   const { data, error } = await supabaseAdmin
     .from("orders")
-    .select("order_no, product, amount, status, created_at")
+    .select("order_no, product, amount, status, delivery_note, created_at")
     .eq("order_no", orderNo)
     .single();
 

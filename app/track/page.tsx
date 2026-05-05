@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import Link from "next/link";
 
 type Order = {
   order_no: string;
@@ -18,6 +19,7 @@ function TrackContent() {
   const [orderNo, setOrderNo] = useState(defaultOrderId);
   const [order, setOrder] = useState<Order | null>(null);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   async function searchOrder(value?: string) {
     const targetOrder = value || orderNo;
@@ -27,11 +29,16 @@ function TrackContent() {
       return;
     }
 
+    setLoading(true);
     setError("");
     setOrder(null);
 
-    const res = await fetch(`/api/track?orderNo=${encodeURIComponent(targetOrder)}`);
+    const res = await fetch(
+      `/api/track?orderNo=${encodeURIComponent(targetOrder)}`
+    );
+
     const data = await res.json();
+    setLoading(false);
 
     if (!res.ok) {
       setError(data.error || "Order not found");
@@ -48,60 +55,90 @@ function TrackContent() {
   }, []);
 
   return (
-    <main className="min-h-screen bg-slate-950 text-white px-6 py-12">
-      <div className="max-w-2xl mx-auto bg-white/10 border border-white/10 rounded-3xl p-8">
-        <h1 className="text-3xl font-bold mb-6">Track Your Order</h1>
+    <main className="min-h-screen bg-slate-100 px-6 py-10 text-slate-900">
+      <div className="max-w-3xl mx-auto">
+        <Link href="/" className="text-blue-600 text-sm font-semibold">
+          ← Back Home
+        </Link>
 
-        <div className="flex gap-3 mb-6">
-          <input
-            className="flex-1 p-3 rounded-xl text-black"
-            placeholder="Enter Order ID, e.g. ORD-123456"
-            value={orderNo}
-            onChange={(e) => setOrderNo(e.target.value)}
-          />
+        <div className="mt-6 bg-white border rounded-3xl p-8 shadow-xl">
+          <h1 className="text-3xl font-extrabold mb-2">Track Your Order</h1>
 
-          <button
-            onClick={() => searchOrder()}
-            className="bg-green-500 text-black font-bold px-6 rounded-xl"
-          >
-            Search
-          </button>
+          <p className="text-slate-600 mb-8">
+            Enter your order ID to check payment and delivery status.
+          </p>
+
+          <div className="flex flex-col md:flex-row gap-3 mb-6">
+            <input
+              className="flex-1 p-4 rounded-xl border border-slate-300 text-slate-900 outline-none focus:border-blue-500"
+              placeholder="Enter Order ID, e.g. ORD-123456"
+              value={orderNo}
+              onChange={(e) => setOrderNo(e.target.value)}
+            />
+
+            <button
+              onClick={() => searchOrder()}
+              disabled={loading}
+              className="bg-emerald-500 hover:bg-emerald-400 disabled:bg-slate-400 text-black font-extrabold px-8 py-4 rounded-xl"
+            >
+              {loading ? "Searching..." : "Search"}
+            </button>
+          </div>
+
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 rounded-2xl p-4 mb-6">
+              {error}
+            </div>
+          )}
+
+          {order && (
+            <div className="bg-slate-50 border rounded-2xl p-6 space-y-5">
+              <div>
+                <p className="text-slate-500 text-sm">Order ID</p>
+                <p className="text-2xl font-extrabold text-emerald-600">
+                  {order.order_no}
+                </p>
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="bg-white border rounded-xl p-4">
+                  <p className="text-slate-500 text-sm">Product</p>
+                  <p className="font-bold">{order.product}</p>
+                </div>
+
+                <div className="bg-white border rounded-xl p-4">
+                  <p className="text-slate-500 text-sm">Amount</p>
+                  <p className="font-bold">${order.amount} USDT</p>
+                </div>
+
+                <div className="bg-white border rounded-xl p-4">
+                  <p className="text-slate-500 text-sm">Status</p>
+                  <p
+                    className={`font-extrabold uppercase ${
+                      order.status === "completed"
+                        ? "text-emerald-600"
+                        : "text-yellow-600"
+                    }`}
+                  >
+                    {order.status}
+                  </p>
+                </div>
+
+                <div className="bg-white border rounded-xl p-4">
+                  <p className="text-slate-500 text-sm">Created At</p>
+                  <p className="font-bold">
+                    {new Date(order.created_at).toLocaleString()}
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-blue-50 border border-blue-200 text-blue-700 rounded-xl p-4 text-sm">
+                If your payment has been submitted, please wait for manual
+                verification and delivery.
+              </div>
+            </div>
+          )}
         </div>
-
-        {error && (
-          <div className="bg-red-500/20 border border-red-500/30 rounded-2xl p-4 mb-4">
-            {error}
-          </div>
-        )}
-
-        {order && (
-          <div className="bg-black/30 rounded-2xl p-6 space-y-4">
-            <div>
-              <p className="text-slate-400">Order ID</p>
-              <p className="text-xl font-bold text-green-400">{order.order_no}</p>
-            </div>
-
-            <div>
-              <p className="text-slate-400">Product</p>
-              <p className="font-bold">{order.product}</p>
-            </div>
-
-            <div>
-              <p className="text-slate-400">Amount</p>
-              <p className="font-bold">${order.amount} USDT</p>
-            </div>
-
-            <div>
-              <p className="text-slate-400">Status</p>
-              <p className="font-bold uppercase text-yellow-400">{order.status}</p>
-            </div>
-
-            <div>
-              <p className="text-slate-400">Created At</p>
-              <p>{new Date(order.created_at).toLocaleString()}</p>
-            </div>
-          </div>
-        )}
       </div>
     </main>
   );
@@ -109,7 +146,7 @@ function TrackContent() {
 
 export default function TrackPage() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense fallback={<div className="p-10">Loading...</div>}>
       <TrackContent />
     </Suspense>
   );

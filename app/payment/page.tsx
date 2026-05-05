@@ -93,7 +93,7 @@ function PaymentContent() {
             <p className="font-bold mb-2">Wallet Address</p>
 
             <p className="break-all text-yellow-300 font-mono">
-              👉 这里换成你的 USDT TRC20 地址
+              👉 TTmc9PhAioNeRVdh5Nb9TZ7WCJ6dqDZH4o
             </p>
 
             <p className="text-sm text-slate-300 mt-4">

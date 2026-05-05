@@ -31,12 +31,32 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { order_no, status, delivery_note } = body;
+  const {
+    order_no,
+    status,
+    product_type,
+    license_key,
+    error_code,
+    installation_id,
+    confirmation_id,
+    account_email,
+    account_password,
+    tutorial_link,
+    delivery_note,
+  } = body;
 
   const { error } = await supabaseAdmin
     .from("orders")
     .update({
       status,
+      product_type,
+      license_key,
+      error_code,
+      installation_id,
+      confirmation_id,
+      account_email,
+      account_password,
+      tutorial_link,
       delivery_note,
     })
     .eq("order_no", order_no);

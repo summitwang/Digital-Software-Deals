@@ -25,90 +25,93 @@ export default function HomePage() {
   }, []);
 
   return (
-    <main className="min-h-screen bg-slate-50">
-      <nav className="flex items-center justify-between px-6 py-4 bg-white shadow-sm sticky top-0 z-50">
-        <div className="text-xl font-extrabold">Digital Software Deals</div>
+    <main className="min-h-screen bg-slate-50 text-slate-900">
+      <nav className="sticky top-0 z-50 bg-white/90 backdrop-blur border-b">
+        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+          <div className="text-xl font-extrabold">Digital Software Deals</div>
 
-        <div className="flex gap-5 text-sm font-medium">
-          <Link href="/">Home</Link>
-          <Link href="#products">Products</Link>
-          <Link href="/track">Track Order</Link>
-          <Link href="/admin">Admin</Link>
+          <div className="flex gap-5 text-sm font-semibold">
+            <Link href="/">Home</Link>
+            <Link href="#products">Products</Link>
+            <Link href="/track">Track Order</Link>
+          </div>
         </div>
       </nav>
 
-      <section className="bg-gradient-to-br from-black via-slate-950 to-slate-900 text-white px-6 py-20">
+      <section className="bg-gradient-to-br from-blue-950 via-slate-950 to-black text-white px-6 py-20">
         <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-10 items-center">
           <div>
             <div className="inline-block bg-red-500 px-5 py-2 rounded-full text-sm font-bold mb-6">
-              🔥 Today Deal Ends Soon
+              🔥 Instant Digital Delivery
             </div>
 
             <h1 className="text-5xl font-extrabold mb-6 leading-tight">
-              Digital Software Deals
+              Software Deals With Fast Support
             </h1>
 
             <p className="text-xl text-slate-200 mb-8">
-              Windows, Office, Adobe and Autodesk products with fast delivery,
-              order tracking and after-sales support.
+              Windows, Office, Adobe, Autodesk and digital accounts with order
+              tracking, payment verification and after-sales support.
             </p>
 
-            <div className="flex gap-4">
+            <div className="flex flex-col sm:flex-row gap-4">
               <a
                 href="#products"
-                className="bg-white text-black px-8 py-4 rounded-xl font-bold hover:bg-slate-200"
+                className="bg-white text-black px-8 py-4 rounded-xl font-bold text-center hover:bg-slate-200"
               >
                 Shop Now
               </a>
 
               <Link
                 href="/track"
-                className="border border-white px-8 py-4 rounded-xl font-bold hover:bg-white hover:text-black"
+                className="border border-white px-8 py-4 rounded-xl font-bold text-center hover:bg-white hover:text-black"
               >
                 Track Order
               </Link>
             </div>
           </div>
 
-          <div className="bg-white/10 border border-white/20 rounded-3xl p-8">
-            <h2 className="text-2xl font-bold mb-5">
-              Why customers choose us
-            </h2>
+          <div className="bg-white/10 border border-white/20 rounded-3xl p-8 shadow-2xl">
+            <h2 className="text-2xl font-bold mb-5">Why choose us?</h2>
 
             <ul className="space-y-4 text-slate-100">
-              <li>✅ Fast order processing</li>
-              <li>✅ Multiple product types supported</li>
-              <li>✅ Customer order tracking</li>
-              <li>✅ Support after purchase</li>
+              <li>✅ Fast processing after payment verification</li>
+              <li>✅ Order tracking after purchase</li>
+              <li>✅ Activation help for key products</li>
+              <li>✅ Account delivery and usage tutorial support</li>
             </ul>
           </div>
         </div>
       </section>
 
       <section className="max-w-6xl mx-auto px-6 py-10 grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-white rounded-2xl shadow p-5 text-center">
+        <div className="bg-white rounded-2xl shadow p-5 text-center font-semibold">
           ⚡ Fast Delivery
         </div>
-        <div className="bg-white rounded-2xl shadow p-5 text-center">
-          🔒 Secure Payment
+        <div className="bg-white rounded-2xl shadow p-5 text-center font-semibold">
+          🔒 Verified Payment
         </div>
-        <div className="bg-white rounded-2xl shadow p-5 text-center">
-          ⭐ Reviews
+        <div className="bg-white rounded-2xl shadow p-5 text-center font-semibold">
+          ⭐ Trusted Support
         </div>
-        <div className="bg-white rounded-2xl shadow p-5 text-center">
-          💬 Support
+        <div className="bg-white rounded-2xl shadow p-5 text-center font-semibold">
+          💬 Online Help
         </div>
       </section>
 
       <section id="products" className="max-w-6xl mx-auto px-6 py-12">
         <div className="flex items-center justify-between mb-8">
-          <h2 className="text-3xl font-extrabold">🔥 Best Sellers</h2>
-          <span className="text-blue-600 font-semibold">View All →</span>
+          <div>
+            <h2 className="text-3xl font-extrabold">🔥 Best Sellers</h2>
+            <p className="text-slate-500 mt-2">
+              Choose your product and complete payment securely.
+            </p>
+          </div>
         </div>
 
         {products.length === 0 ? (
           <div className="bg-white rounded-3xl shadow p-10 text-center text-slate-500">
-            No products yet. Please add products in Admin.
+            No products available yet.
           </div>
         ) : (
           <div className="grid md:grid-cols-3 gap-8">
@@ -145,7 +148,7 @@ export default function HomePage() {
 
                   <h3 className="text-xl font-bold mb-2">{product.title}</h3>
 
-                  <p className="text-slate-600 text-sm mb-5 min-h-[40px]">
+                  <p className="text-slate-600 text-sm mb-5 min-h-[44px]">
                     {product.description}
                   </p>
 
@@ -163,7 +166,9 @@ export default function HomePage() {
                   <Link
                     href={`/payment?product=${encodeURIComponent(
                       product.title
-                    )}&amount=${encodeURIComponent(String(product.price))}`}
+                    )}&amount=${encodeURIComponent(
+                      String(product.price)
+                    )}&type=${encodeURIComponent(product.product_type || "other")}`}
                     className="block text-center bg-black text-white py-4 rounded-xl font-bold hover:bg-slate-800"
                   >
                     Buy Now
@@ -173,6 +178,23 @@ export default function HomePage() {
             ))}
           </div>
         )}
+      </section>
+
+      <section className="max-w-6xl mx-auto px-6 pb-20">
+        <div className="bg-white border rounded-3xl p-8 shadow">
+          <h2 className="text-2xl font-extrabold mb-4">Need help?</h2>
+          <p className="text-slate-600 mb-5">
+            Already purchased? Use Track Order to check payment and delivery
+            status.
+          </p>
+
+          <Link
+            href="/track"
+            className="inline-block bg-emerald-500 text-black px-6 py-3 rounded-xl font-extrabold"
+          >
+            Track My Order
+          </Link>
+        </div>
       </section>
 
       <a

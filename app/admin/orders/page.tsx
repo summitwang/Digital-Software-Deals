@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 
 type Order = {
+  payment_screenshot_url?: string;
   id: string;
   order_no: string;
   product: string;

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
-const rateLimitMap = new Map<string, { count: number; time: number }>();
+const rateMap = new Map<string, { count: number; time: number }>();
 
 function getIp(req: Request) {
   return (
@@ -11,40 +11,25 @@ function getIp(req: Request) {
   );
 }
 
-function isRateLimited(ip: string) {
+function isLimited(ip: string) {
   const now = Date.now();
-  const record = rateLimitMap.get(ip);
+  const record = rateMap.get(ip);
 
   if (!record || now - record.time > 10 * 60 * 1000) {
-    rateLimitMap.set(ip, { count: 1, time: now });
+    rateMap.set(ip, { count: 1, time: now });
     return false;
   }
 
-  if (record.count >= 5) {
-    return true;
-  }
+  if (record.count >= 3) return true;
 
   record.count += 1;
   return false;
 }
 
-export async function GET() {
-  const { data, error } = await supabaseAdmin
-    .from("orders")
-    .select("*")
-    .order("created_at", { ascending: false });
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-
-  return NextResponse.json({ orders: data || [] });
-}
-
 export async function POST(req: Request) {
   const ip = getIp(req);
 
-  if (isRateLimited(ip)) {
+  if (isLimited(ip)) {
     return NextResponse.json(
       { error: "Too many submissions. Please try again later." },
       { status: 429 }
@@ -53,9 +38,14 @@ export async function POST(req: Request) {
 
   const body = await req.json();
 
+  if (body.website) {
+    return NextResponse.json({ error: "Spam detected." }, { status: 400 });
+  }
+
   const {
     product,
     amount,
+    product_type,
     customer_name,
     customer_email,
     address,
@@ -66,7 +56,14 @@ export async function POST(req: Request) {
 
   if (!product || !amount || !customer_email || !txid || !screenshot_base64) {
     return NextResponse.json(
-      { error: "Missing required payment information." },
+      { error: "Email, TxID and payment screenshot are required." },
+      { status: 400 }
+    );
+  }
+
+  if (String(txid).length < 10) {
+    return NextResponse.json(
+      { error: "Transaction ID looks too short." },
       { status: 400 }
     );
   }
@@ -78,8 +75,8 @@ export async function POST(req: Request) {
     const base64Data = screenshot_base64.split(",")[1];
     const buffer = Buffer.from(base64Data, "base64");
 
-    const fileExt = screenshot_name?.split(".").pop() || "png";
-    const filePath = `${order_no}.${fileExt}`;
+    const ext = screenshot_name?.split(".").pop() || "png";
+    const filePath = `${order_no}.${ext}`;
 
     const { error: uploadError } = await supabaseAdmin.storage
       .from("payment-screenshots")
@@ -89,17 +86,14 @@ export async function POST(req: Request) {
       });
 
     if (uploadError) {
-      return NextResponse.json(
-        { error: uploadError.message },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: uploadError.message }, { status: 500 });
     }
 
-    const { data: publicUrlData } = supabaseAdmin.storage
+    const { data } = supabaseAdmin.storage
       .from("payment-screenshots")
       .getPublicUrl(filePath);
 
-    payment_screenshot_url = publicUrlData.publicUrl;
+    payment_screenshot_url = data.publicUrl;
   } catch {
     return NextResponse.json(
       { error: "Screenshot upload failed." },
@@ -114,12 +108,13 @@ export async function POST(req: Request) {
         order_no,
         product,
         amount: Number(amount),
+        product_type: product_type || "",
         customer_name,
         customer_email,
         address,
         txid,
-        status: "paid",
         payment_screenshot_url,
+        status: "pending_verify",
       },
     ])
     .select()

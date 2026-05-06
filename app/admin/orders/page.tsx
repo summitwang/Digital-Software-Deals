@@ -357,12 +357,74 @@ export default function AdminOrdersPage() {
     </a>
   </div>
 )}         
-              <button
-                onClick={() => saveOrder(order)}
-                className="mt-5 bg-emerald-500 hover:bg-emerald-400 text-black px-6 py-3 rounded-xl font-extrabold"
-              >
-                Save Order
-              </button>
+              <div className="mt-5 flex flex-wrap gap-3">
+  <button
+    onClick={() => {
+      updateLocalOrder(index, "status", "paid");
+      saveOrder({ ...order, status: "paid" });
+    }}
+    className="bg-blue-500 hover:bg-blue-400 text-white px-5 py-3 rounded-xl font-bold"
+  >
+    ✅ Mark Paid
+  </button>
+
+  <button
+    onClick={() => {
+      updateLocalOrder(index, "status", "key_sent");
+      saveOrder({ ...order, status: "key_sent" });
+    }}
+    className="bg-emerald-500 hover:bg-emerald-400 text-black px-5 py-3 rounded-xl font-bold"
+  >
+    🔑 Key Sent
+  </button>
+
+  <button
+    onClick={() => {
+      updateLocalOrder(index, "status", "need_install_id");
+      saveOrder({ ...order, status: "need_install_id" });
+    }}
+    className="bg-yellow-500 hover:bg-yellow-400 text-black px-5 py-3 rounded-xl font-bold"
+  >
+    🆔 Need Installation ID
+  </button>
+
+  <button
+    onClick={() => {
+      updateLocalOrder(index, "status", "cid_sent");
+      saveOrder({ ...order, status: "cid_sent" });
+    }}
+    className="bg-purple-500 hover:bg-purple-400 text-white px-5 py-3 rounded-xl font-bold"
+  >
+    ✅ CID Sent
+  </button>
+
+  <button
+    onClick={() => {
+      updateLocalOrder(index, "status", "completed");
+      saveOrder({ ...order, status: "completed" });
+    }}
+    className="bg-black hover:bg-slate-800 text-white px-5 py-3 rounded-xl font-bold"
+  >
+    🚚 Completed
+  </button>
+
+  <button
+    onClick={() => {
+      updateLocalOrder(index, "status", "problem");
+      saveOrder({ ...order, status: "problem" });
+    }}
+    className="bg-red-500 hover:bg-red-400 text-white px-5 py-3 rounded-xl font-bold"
+  >
+    ⚠️ Problem
+  </button>
+
+  <button
+    onClick={() => saveOrder(order)}
+    className="bg-slate-700 hover:bg-slate-600 text-white px-5 py-3 rounded-xl font-bold"
+  >
+    💾 Save Fields
+  </button>
+</div>
             </div>
           ))}
 

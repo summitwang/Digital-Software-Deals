@@ -1,12 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 
 type Product = {
   id: string;
   title: string;
   description: string;
   price: number;
+  original_price?: number;
+  promo_price?: number;
   image_url?: string;
   tag?: string;
   product_type?: string;
@@ -17,14 +20,16 @@ export default function AdminPage() {
   const [password, setPassword] = useState("");
   const [loggedIn, setLoggedIn] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
+  const [uploading, setUploading] = useState(false);
 
   const [form, setForm] = useState({
     title: "",
     description: "",
-    price: "",
+    original_price: "",
+    promo_price: "",
     image_url: "",
     tag: "Best Seller",
-    product_type: "software",
+    product_type: "office_account",
     sold_count: "100",
   });
 
@@ -50,9 +55,46 @@ export default function AdminPage() {
     setProducts(data.products || []);
   }
 
+  async function handleImage(file?: File) {
+    if (!file) return;
+
+    if (file.size > 3 * 1024 * 1024) {
+      alert("Image must be under 3MB");
+      return;
+    }
+
+    setUploading(true);
+
+    const reader = new FileReader();
+
+    reader.onload = async () => {
+      const res = await fetch("/api/upload-product-image", {
+        method: "POST",
+        body: JSON.stringify({
+          password,
+          image_base64: String(reader.result),
+          image_name: file.name,
+        }),
+      });
+
+      const data = await res.json();
+      setUploading(false);
+
+      if (!res.ok) {
+        alert(data.error || "Upload failed");
+        return;
+      }
+
+      setForm({ ...form, image_url: data.image_url });
+      alert("Image uploaded");
+    };
+
+    reader.readAsDataURL(file);
+  }
+
   async function addProduct() {
-    if (!form.title || !form.price) {
-      alert("Please enter product title and price");
+    if (!form.title || !form.promo_price) {
+      alert("Please enter product title and promo price");
       return;
     }
 
@@ -60,6 +102,7 @@ export default function AdminPage() {
       method: "POST",
       body: JSON.stringify({
         ...form,
+        price: form.promo_price,
         password,
       }),
     });
@@ -76,10 +119,11 @@ export default function AdminPage() {
     setForm({
       title: "",
       description: "",
-      price: "",
+      original_price: "",
+      promo_price: "",
       image_url: "",
       tag: "Best Seller",
-      product_type: "software",
+      product_type: "office_account",
       sold_count: "100",
     });
 
@@ -91,10 +135,7 @@ export default function AdminPage() {
 
     const res = await fetch("/api/products", {
       method: "DELETE",
-      body: JSON.stringify({
-        id,
-        password,
-      }),
+      body: JSON.stringify({ id, password }),
     });
 
     const data = await res.json();
@@ -109,21 +150,21 @@ export default function AdminPage() {
 
   if (!loggedIn) {
     return (
-      <main className="min-h-screen bg-slate-950 text-white flex items-center justify-center px-6">
-        <div className="w-full max-w-md bg-white/10 border border-white/10 rounded-3xl p-8">
-          <h1 className="text-3xl font-bold mb-6">Admin Login</h1>
+      <main className="min-h-screen bg-slate-100 flex items-center justify-center px-6">
+        <div className="bg-white border rounded-3xl p-8 shadow-xl w-full max-w-md">
+          <h1 className="text-3xl font-extrabold mb-6">Product Admin Login</h1>
 
           <input
             type="password"
-            placeholder="Enter admin password"
-            className="w-full p-3 rounded-xl text-black mb-4"
+            placeholder="Admin password"
+            className="w-full border p-4 rounded-xl mb-4"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
 
           <button
             onClick={login}
-            className="w-full bg-white text-black font-bold py-3 rounded-xl"
+            className="w-full bg-black text-white font-bold py-4 rounded-xl"
           >
             Login
           </button>
@@ -134,63 +175,106 @@ export default function AdminPage() {
 
   return (
     <main className="min-h-screen bg-slate-100 p-6">
-      <div className="max-w-6xl mx-auto">
-        <h1 className="text-3xl font-extrabold mb-8">Product Admin</h1>
+      <div className="max-w-7xl mx-auto">
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <h1 className="text-3xl font-extrabold">Product Admin</h1>
+            <p className="text-slate-600 mt-2">
+              Add products, upload images, and set original/promo prices.
+            </p>
+          </div>
+
+          <div className="flex gap-3">
+            <Link href="/admin/orders" className="bg-white border px-5 py-3 rounded-xl">
+              Orders
+            </Link>
+
+            <Link href="/admin/inventory" className="bg-white border px-5 py-3 rounded-xl">
+              Inventory
+            </Link>
+          </div>
+        </div>
 
         <section className="bg-white rounded-3xl shadow p-6 mb-10">
           <h2 className="text-2xl font-bold mb-5">Add Product</h2>
 
           <div className="grid md:grid-cols-2 gap-4">
-            <input
-              className="border p-3 rounded-xl"
+            <Input
               placeholder="Product title"
               value={form.title}
-              onChange={(e) => setForm({ ...form, title: e.target.value })}
+              onChange={(v) => setForm({ ...form, title: v })}
             />
 
-            <input
-              className="border p-3 rounded-xl"
-              placeholder="Price"
+            <Input
+              placeholder="Original price, e.g. 49.99"
               type="number"
-              value={form.price}
-              onChange={(e) => setForm({ ...form, price: e.target.value })}
+              value={form.original_price}
+              onChange={(v) => setForm({ ...form, original_price: v })}
             />
 
-            <input
-              className="border p-3 rounded-xl"
+            <Input
+              placeholder="Promo price, e.g. 19.99"
+              type="number"
+              value={form.promo_price}
+              onChange={(v) => setForm({ ...form, promo_price: v })}
+            />
+
+            <Input
               placeholder="Tag, e.g. Best Seller"
               value={form.tag}
-              onChange={(e) => setForm({ ...form, tag: e.target.value })}
+              onChange={(v) => setForm({ ...form, tag: v })}
             />
 
-            <input
-              className="border p-3 rounded-xl"
-              placeholder="Product type, e.g. office/windows/adobe"
+            <select
+              className="border p-4 rounded-xl"
               value={form.product_type}
               onChange={(e) =>
                 setForm({ ...form, product_type: e.target.value })
               }
-            />
+            >
+              <option value="windows_key">windows_key</option>
+              <option value="office_key">office_key</option>
+              <option value="office_account">office_account</option>
+              <option value="adobe_account">adobe_account</option>
+              <option value="autodesk_account">autodesk_account</option>
+              <option value="gemini_account">gemini_account</option>
+              <option value="other">other</option>
+            </select>
 
-            <input
-              className="border p-3 rounded-xl"
+            <Input
               placeholder="Sold count"
               type="number"
               value={form.sold_count}
-              onChange={(e) =>
-                setForm({ ...form, sold_count: e.target.value })
-              }
+              onChange={(v) => setForm({ ...form, sold_count: v })}
             />
 
-            <input
-              className="border p-3 rounded-xl"
-              placeholder="Image URL"
-              value={form.image_url}
-              onChange={(e) => setForm({ ...form, image_url: e.target.value })}
-            />
+            <div className="border rounded-xl p-4 md:col-span-2">
+              <p className="font-bold mb-2">Product Image</p>
+
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => handleImage(e.target.files?.[0])}
+              />
+
+              {uploading && <p className="text-blue-600 mt-2">Uploading...</p>}
+
+              {form.image_url && (
+                <div className="mt-4">
+                  <img
+                    src={form.image_url}
+                    alt="preview"
+                    className="w-48 rounded-xl border"
+                  />
+                  <p className="text-xs text-slate-500 break-all mt-2">
+                    {form.image_url}
+                  </p>
+                </div>
+              )}
+            </div>
 
             <textarea
-              className="border p-3 rounded-xl md:col-span-2"
+              className="border p-4 rounded-xl md:col-span-2 min-h-[120px]"
               placeholder="Product description"
               value={form.description}
               onChange={(e) =>
@@ -201,7 +285,7 @@ export default function AdminPage() {
 
           <button
             onClick={addProduct}
-            className="mt-5 bg-black text-white px-6 py-3 rounded-xl font-bold"
+            className="mt-5 bg-emerald-500 hover:bg-emerald-400 text-black px-6 py-3 rounded-xl font-extrabold"
           >
             Add Product
           </button>
@@ -214,18 +298,37 @@ export default function AdminPage() {
             {products.map((product) => (
               <div
                 key={product.id}
-                className="border rounded-2xl p-4 flex justify-between gap-4"
+                className="border rounded-2xl p-4 flex flex-col md:flex-row md:justify-between gap-4"
               >
-                <div>
-                  <h3 className="font-bold text-xl">{product.title}</h3>
-                  <p className="text-slate-600">{product.description}</p>
-                  <p className="mt-2 font-bold text-green-600">
-                    ${product.price}
-                  </p>
-                  <p className="text-sm text-slate-500">
-                    {product.tag} · {product.product_type} ·{" "}
-                    {product.sold_count || 0} sold
-                  </p>
+                <div className="flex gap-4">
+                  {product.image_url && (
+                    <img
+                      src={product.image_url}
+                      alt={product.title}
+                      className="w-24 h-24 object-cover rounded-xl border"
+                    />
+                  )}
+
+                  <div>
+                    <h3 className="font-bold text-xl">{product.title}</h3>
+                    <p className="text-slate-600">{product.description}</p>
+
+                    <div className="mt-2 flex gap-3 items-center">
+                      {product.original_price && (
+                        <span className="line-through text-slate-400">
+                          ${product.original_price}
+                        </span>
+                      )}
+                      <span className="font-bold text-green-600 text-xl">
+                        ${product.promo_price || product.price}
+                      </span>
+                    </div>
+
+                    <p className="text-sm text-slate-500">
+                      {product.tag} · {product.product_type} ·{" "}
+                      {product.sold_count || 0} sold
+                    </p>
+                  </div>
                 </div>
 
                 <button
@@ -244,5 +347,27 @@ export default function AdminPage() {
         </section>
       </div>
     </main>
+  );
+}
+
+function Input({
+  placeholder,
+  value,
+  onChange,
+  type = "text",
+}: {
+  placeholder: string;
+  value: string;
+  type?: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <input
+      className="border p-4 rounded-xl"
+      placeholder={placeholder}
+      type={type}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+    />
   );
 }

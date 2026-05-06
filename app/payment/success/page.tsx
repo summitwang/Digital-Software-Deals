@@ -1,43 +1,45 @@
 "use client";
 
-import Link from "next/link";
 import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
+import Link from "next/link";
 
 function SuccessContent() {
   const searchParams = useSearchParams();
-  const orderId = searchParams.get("orderId") || "Your order";
+  const orderId = searchParams.get("orderId") || "";
 
   return (
-    <main className="min-h-screen bg-slate-950 text-white flex items-center justify-center px-6">
-      <div className="max-w-xl w-full bg-white/10 border border-white/10 rounded-3xl p-8 text-center">
-        <div className="text-5xl mb-4">✅</div>
+    <main className="min-h-screen bg-slate-100 px-6 py-10 text-slate-900 flex items-center justify-center">
+      <div className="bg-white border rounded-3xl p-8 shadow-xl max-w-xl w-full text-center">
+        <div className="text-6xl mb-5">✅</div>
 
-        <h1 className="text-3xl font-bold mb-3">
+        <h1 className="text-3xl font-extrabold mb-4">
           Payment Submitted Successfully
         </h1>
 
-        <p className="text-slate-300 mb-6">
-          Thank you. Your order has been submitted and is waiting for manual
-          verification.
+        <p className="text-slate-600 mb-6">
+          Your payment proof has been submitted. We will verify it manually
+          before delivery.
         </p>
 
-        <div className="bg-black/30 rounded-2xl p-4 mb-6">
-          <p className="text-sm text-slate-400">Order ID</p>
-          <p className="text-xl font-bold text-emerald-400">{orderId}</p>
+        <div className="bg-slate-50 border rounded-2xl p-5 mb-6">
+          <p className="text-slate-500 text-sm">Order ID</p>
+          <p className="text-2xl font-extrabold text-emerald-600 break-all">
+            {orderId}
+          </p>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+        <div className="flex justify-center gap-3">
           <Link
             href={`/track?orderId=${encodeURIComponent(orderId)}`}
-            className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-6 py-3 rounded-xl"
+            className="bg-emerald-500 text-black px-6 py-3 rounded-xl font-extrabold"
           >
             Track Order
           </Link>
 
           <Link
             href="/"
-            className="bg-white/10 hover:bg-white/20 border border-white/10 px-6 py-3 rounded-xl"
+            className="bg-black text-white px-6 py-3 rounded-xl font-bold"
           >
             Back Home
           </Link>
@@ -49,7 +51,7 @@ function SuccessContent() {
 
 export default function SuccessPage() {
   return (
-    <Suspense fallback={<div className="p-10 text-white">Loading...</div>}>
+    <Suspense fallback={<div className="p-10">Loading...</div>}>
       <SuccessContent />
     </Suspense>
   );

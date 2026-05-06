@@ -340,17 +340,23 @@ export default function AdminOrdersPage() {
 
               {order.payment_screenshot_url && (
   <div className="bg-slate-50 border rounded-xl p-4 md:col-span-2">
-    <p className="text-sm text-slate-500">Payment Screenshot</p>
+    <p className="text-sm text-slate-500 mb-2">Payment Screenshot</p>
+
+    <img
+      src={order.payment_screenshot_url}
+      alt="screenshot"
+      className="rounded-lg border max-h-[300px]"
+    />
+
     <a
       href={order.payment_screenshot_url}
       target="_blank"
-      className="text-blue-600 underline break-all"
+      className="text-blue-600 text-sm underline mt-2 inline-block"
     >
-      View Screenshot
+      Open Full Image
     </a>
   </div>
-)}
-              
+)}         
               <button
                 onClick={() => saveOrder(order)}
                 className="mt-5 bg-emerald-500 hover:bg-emerald-400 text-black px-6 py-3 rounded-xl font-extrabold"

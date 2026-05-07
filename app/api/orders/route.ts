@@ -63,7 +63,7 @@ async function verifyUsdtPayment(txid: string, expectedAmount: number) {
       String(item.transaction_id).toLowerCase() === txid.toLowerCase()
   );
 
- /* if (!tx) {
+  if (!tx) {
     return {
       ok: false,
       error: "Transaction not found or not confirmed yet.",
@@ -95,10 +95,10 @@ async function verifyUsdtPayment(txid: string, expectedAmount: number) {
       error: `Payment amount is too low. Paid ${paidAmount} USDT.`,
     };
   }
-*/
+
   return {
     ok: true,
-    paidAmount: expectedAmount,
+    paidAmount,
   };
 }
 

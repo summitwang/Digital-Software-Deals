@@ -129,8 +129,7 @@ function TrackContent() {
           <h1 className="text-3xl font-extrabold mb-2">Track Your Order</h1>
 
           <p className="text-slate-600 mb-8">
-            Enter your order ID to check payment, activation and delivery
-            status.
+            Enter your order ID to check payment, activation and delivery status.
           </p>
 
           <div className="flex flex-col md:flex-row gap-3 mb-6">
@@ -180,14 +179,8 @@ function TrackContent() {
                 <DeliveryBox title="License Key" value={order.license_key} />
               )}
 
-              {(order.account_email || order.account_password) && (
-                <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl p-4">
-                  <p className="font-bold mb-2">Account Delivery</p>
-                  {order.account_email && <p>Email: {order.account_email}</p>}
-                  {order.account_password && (
-                    <p>Password: {order.account_password}</p>
-                  )}
-                </div>
+              {order.account_email && (
+                <AccountList value={order.account_email} />
               )}
 
               {order.confirmation_id && (
@@ -224,8 +217,7 @@ function TrackContent() {
                   </h3>
 
                   <p className="text-sm text-slate-600 mb-4">
-                    If activation fails, submit your error code or Installation
-                    ID here.
+                    If activation fails, submit your error code or Installation ID here.
                   </p>
 
                   <input
@@ -254,8 +246,7 @@ function TrackContent() {
               )}
 
               <div className="bg-blue-50 border border-blue-200 text-blue-700 rounded-xl p-4 text-sm">
-                If your payment has been submitted, please wait for manual
-                verification and delivery.
+                If your payment has been submitted, please wait for verification and delivery.
               </div>
             </div>
           )}
@@ -287,6 +278,28 @@ function DeliveryBox({ title, value }: { title: string; value: string }) {
     <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl p-4">
       <p className="font-bold mb-2">{title}</p>
       <p className="whitespace-pre-wrap break-all">{value}</p>
+    </div>
+  );
+}
+
+function AccountList({ value }: { value: string }) {
+  const lines = value
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  return (
+    <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl p-4">
+      <p className="font-bold mb-3">Account Delivery</p>
+
+      <div className="space-y-3">
+        {lines.map((line, index) => (
+          <div key={index} className="bg-white border rounded-xl p-3">
+            <p className="text-sm text-slate-500 mb-1">Account #{index + 1}</p>
+            <p className="font-bold break-all whitespace-pre-wrap">{line}</p>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

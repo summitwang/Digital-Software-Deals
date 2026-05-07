@@ -121,6 +121,7 @@ export async function POST(req: Request) {
   const {
     product,
     amount,
+    quantity,
     product_type,
     customer_name,
     customer_email,
@@ -208,6 +209,7 @@ export async function POST(req: Request) {
         order_no,
         product,
         amount: expectedAmount,
+        quantity: Number(quantity || 1),
         product_type: product_type || "",
         customer_name,
         customer_email,

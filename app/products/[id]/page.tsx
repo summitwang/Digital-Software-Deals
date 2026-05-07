@@ -1,221 +1,194 @@
+"use client";
+
 import Link from "next/link";
+import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
 
 type Product = {
   id: string;
   title: string;
-  price: string;
-  productType: string;
-  image: string;
   description: string;
-  sales: number;
+  price: number;
+  original_price?: number;
+  promo_price?: number;
+  image_url?: string;
+  tag?: string;
+  product_type?: string;
+  sold_count?: number;
 };
 
-type Review = {
-  id: string;
-  productId: string;
-  name: string;
-  rating: number;
-  comment: string;
-  mediaUrl?: string;
-  mediaType?: "image" | "video";
-  createdAt: string;
-};
-
-async function getProducts(): Promise<Product[]> {
-  const res = await fetch("http://localhost:3000/api/products", {
-    cache: "no-store",
-  });
-
-  return res.json();
+function getDiscount(original?: number, promo?: number, price?: number) {
+  const finalPrice = promo || price || 0;
+  if (!original || original <= finalPrice) return null;
+  return Math.round(((original - finalPrice) / original) * 100);
 }
 
-async function getReviews(): Promise<Review[]> {
-  const res = await fetch("http://localhost:3000/api/reviews", {
-    cache: "no-store",
-  });
+export default function ProductDetailPage() {
+  const params = useParams();
+  const id = String(params.id);
 
-  return res.json();
-}
+  const [product, setProduct] = useState<Product | null>(null);
+  const [loading, setLoading] = useState(true);
 
-export default async function ProductDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
+  useEffect(() => {
+    fetch(`/api/products/${id}`)
+      .then((res) => res.json())
+      .then((data) => setProduct(data.product || null))
+      .finally(() => setLoading(false));
+  }, [id]);
 
-  const products = await getProducts();
-  const reviews = await getReviews();
-
-  const product = products.find((item) => item.id === id);
-
-  if (!product) {
+  if (loading) {
     return (
-      <main className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <div className="bg-white p-8 rounded-2xl shadow">
-          <h1 className="text-2xl font-bold mb-4">Product not found</h1>
-          <Link href="/products" className="text-blue-600">
-            Back to Products
-          </Link>
-        </div>
+      <main className="min-h-screen bg-slate-100 p-10">
+        Loading product...
       </main>
     );
   }
 
-  const productReviews = reviews.filter(
-    (review) => review.productId === product.id
+  if (!product) {
+    return (
+      <main className="min-h-screen bg-slate-100 p-10">
+        Product not found.
+      </main>
+    );
+  }
+
+  const finalPrice = product.promo_price || product.price;
+  const discount = getDiscount(
+    product.original_price,
+    product.promo_price,
+    product.price
   );
 
-  const averageRating =
-    productReviews.length > 0
-      ? (
-          productReviews.reduce((sum, review) => sum + review.rating, 0) /
-          productReviews.length
-        ).toFixed(1)
-      : "5.0";
-
   return (
-    <main className="min-h-screen bg-slate-50">
-      <div className="max-w-6xl mx-auto px-6 py-10">
-        <div className="flex justify-between mb-8">
-          <Link href="/products" className="text-blue-600">
-            ← Back to Products
+    <main className="min-h-screen bg-slate-100 text-slate-900">
+      <nav className="bg-white border-b">
+        <div className="max-w-6xl mx-auto px-6 py-4 flex justify-between">
+          <Link href="/" className="font-extrabold text-xl">
+            Digital Software Deals
           </Link>
 
-          <Link href="/track" className="text-blue-600">
-            Track Order
-          </Link>
+          <div className="flex gap-5 text-sm font-semibold">
+            <Link href="/">Home</Link>
+            <Link href="/track">Track Order</Link>
+          </div>
         </div>
+      </nav>
 
-        <div className="bg-white rounded-3xl shadow p-6 grid md:grid-cols-2 gap-8">
-          <div>
-            {product.image ? (
-              <img
-                src={product.image}
-                className="w-full rounded-2xl border"
-                alt={product.title}
-              />
-            ) : (
-              <div className="w-full h-96 bg-slate-100 rounded-2xl flex items-center justify-center">
-                Product Image
+      <section className="max-w-6xl mx-auto px-6 py-10 grid md:grid-cols-2 gap-10">
+        <div className="bg-white rounded-3xl shadow overflow-hidden border">
+          <div className="h-[420px] bg-gradient-to-br from-slate-900 to-blue-900 flex items-center justify-center relative">
+            {discount && (
+              <div className="absolute top-5 left-5 bg-red-500 text-white px-4 py-2 rounded-full font-extrabold">
+                -{discount}%
               </div>
             )}
 
-            <div className="grid grid-cols-3 gap-3 mt-4 text-center text-sm">
-              <div className="bg-slate-50 border rounded-xl p-3">
-                Instant Delivery
+            {product.image_url ? (
+              <img
+                src={product.image_url}
+                alt={product.title}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="text-white text-center">
+                <div className="text-7xl mb-4">💿</div>
+                <div className="text-2xl font-bold">{product.title}</div>
               </div>
-              <div className="bg-slate-50 border rounded-xl p-3">
-                Secure Payment
-              </div>
-              <div className="bg-slate-50 border rounded-xl p-3">
-                Support Included
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <div className="flex gap-2 mb-3">
-              <span className="bg-red-500 text-white text-xs px-3 py-1 rounded-full">
-                HOT
-              </span>
-              <span className="bg-orange-500 text-white text-xs px-3 py-1 rounded-full">
-                Best Seller
-              </span>
-            </div>
-
-            <h1 className="text-3xl font-bold mb-3">{product.title}</h1>
-
-            <div className="flex gap-4 text-sm text-slate-600 mb-4">
-              <span>⭐ {averageRating}</span>
-              <span>{productReviews.length} Reviews</span>
-              <span>{product.sales} Sold</span>
-            </div>
-
-            <p className="text-3xl font-bold text-blue-600 mb-6">
-              {product.price}
-            </p>
-
-            <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 mb-6 text-sm leading-6">
-              <p className="font-semibold mb-2">Why buy from us?</p>
-              <p>✓ Fast order processing</p>
-              <p>✓ Manual payment verification</p>
-              <p>✓ Order tracking available</p>
-              <p>✓ Support available after purchase</p>
-            </div>
-
-            <p className="text-slate-700 leading-7 mb-8 whitespace-pre-line">
-              {product.description}
-            </p>
-
-            <Link
-              href={`/payment?productId=${product.id}`}
-              className="block text-center bg-black text-white px-8 py-4 rounded-xl font-bold text-lg mb-4"
-            >
-              BUY NOW
-            </Link>
-
-            <Link
-              href="/track"
-              className="block text-center border border-slate-300 px-8 py-3 rounded-xl"
-            >
-              Track Existing Order
-            </Link>
+            )}
           </div>
         </div>
 
-        <div className="bg-white rounded-3xl shadow p-6 mt-8">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold">Customer Reviews</h2>
+        <div>
+          <div className="mb-4">
+            <span className="bg-red-100 text-red-600 px-4 py-2 rounded-full text-sm font-bold">
+              {product.tag || "Best Seller"}
+            </span>
+          </div>
 
-            <div className="text-right">
-              <p className="text-xl font-bold">⭐ {averageRating}</p>
-              <p className="text-sm text-slate-500">
-                {productReviews.length} reviews
+          <h1 className="text-4xl font-extrabold mb-4">{product.title}</h1>
+
+          <p className="text-slate-600 text-lg mb-6">{product.description}</p>
+
+          <div className="bg-white border rounded-3xl p-6 shadow mb-6">
+            <p className="text-slate-500 mb-1">Special Price</p>
+
+            <div className="flex items-end gap-4">
+              <p className="text-5xl font-extrabold text-green-600">
+                ${finalPrice}
               </p>
+
+              {product.original_price && product.original_price > finalPrice && (
+                <p className="text-2xl text-slate-400 line-through mb-2">
+                  ${product.original_price}
+                </p>
+              )}
+            </div>
+
+            <div className="mt-4 flex gap-4 text-sm text-slate-600">
+              <span>⭐⭐⭐⭐⭐ 5.0</span>
+              <span>{product.sold_count || 0} sold</span>
             </div>
           </div>
 
-          {productReviews.length === 0 ? (
-            <p className="text-slate-500">No reviews yet.</p>
-          ) : (
-            <div className="space-y-5">
-              {productReviews.map((review) => (
-                <div key={review.id} className="border rounded-2xl p-5">
-                  <div className="flex justify-between gap-4 mb-3">
-                    <div>
-                      <p className="font-semibold">
-                        {review.name} · {"★".repeat(review.rating)}
-                      </p>
-                      <p className="text-xs text-slate-500">
-                        {review.createdAt}
-                      </p>
-                    </div>
-                  </div>
+          <div className="grid grid-cols-2 gap-3 mb-6">
+            <Benefit text="Fast processing" />
+            <Benefit text="Payment verified" />
+            <Benefit text="Order tracking" />
+            <Benefit text="After-sales support" />
+          </div>
 
-                  <p className="text-slate-700 mb-3">{review.comment}</p>
+          <Link
+            href={`/payment?product=${encodeURIComponent(
+              product.title
+            )}&amount=${encodeURIComponent(
+              String(finalPrice)
+            )}&type=${encodeURIComponent(product.product_type || "other")}`}
+            className="block text-center bg-black text-white py-5 rounded-2xl font-extrabold text-lg hover:bg-slate-800"
+          >
+            Buy Now
+          </Link>
 
-                  {review.mediaUrl && review.mediaType === "image" && (
-                    <img
-                      src={review.mediaUrl}
-                      className="w-60 border rounded-xl"
-                      alt="Review image"
-                    />
-                  )}
-
-                  {review.mediaUrl && review.mediaType === "video" && (
-                    <video
-                      src={review.mediaUrl}
-                      controls
-                      className="w-80 border rounded-xl"
-                    />
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
+          <Link
+            href="/track"
+            className="block text-center mt-3 bg-white border py-4 rounded-2xl font-bold hover:bg-slate-50"
+          >
+            Track Existing Order
+          </Link>
         </div>
-      </div>
+      </section>
+
+      <section className="max-w-6xl mx-auto px-6 pb-16 grid md:grid-cols-3 gap-6">
+        <InfoCard
+          title="How delivery works"
+          text="After payment verification, your order will be processed and delivery details will be available in Track Order."
+        />
+        <InfoCard
+          title="Activation support"
+          text="For key products, if activation requires phone activation, submit your Installation ID in Track Order."
+        />
+        <InfoCard
+          title="Tutorial included"
+          text="For supported products, usage or activation tutorials will be provided after purchase."
+        />
+      </section>
     </main>
+  );
+}
+
+function Benefit({ text }: { text: string }) {
+  return (
+    <div className="bg-white border rounded-2xl p-4 font-semibold">
+      ✅ {text}
+    </div>
+  );
+}
+
+function InfoCard({ title, text }: { title: string; text: string }) {
+  return (
+    <div className="bg-white border rounded-3xl p-6 shadow">
+      <h3 className="text-xl font-extrabold mb-3">{title}</h3>
+      <p className="text-slate-600">{text}</p>
+    </div>
   );
 }

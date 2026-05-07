@@ -29,6 +29,7 @@ export default function ProductDetailPage() {
 
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
+  const [quantity, setQuantity] = useState(1);
 
   useEffect(() => {
     fetch(`/api/products/${id}`)
@@ -53,7 +54,8 @@ export default function ProductDetailPage() {
     );
   }
 
-  const finalPrice = product.promo_price || product.price;
+  const unitPrice = product.promo_price || product.price;
+const finalPrice = unitPrice * quantity;
   const discount = getDiscount(
     product.original_price,
     product.promo_price,
@@ -127,6 +129,33 @@ export default function ProductDetailPage() {
 
             <div className="mt-4 flex gap-4 text-sm text-slate-600">
               <span>⭐⭐⭐⭐⭐ 5.0</span>
+              <div className="mt-6">
+  <p className="text-slate-500 mb-2 font-semibold">Quantity</p>
+
+  <div className="flex items-center gap-4">
+    <button
+      onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+      className="w-12 h-12 rounded-xl border bg-white text-2xl font-bold"
+    >
+      -
+    </button>
+
+    <div className="text-2xl font-extrabold w-12 text-center">
+      {quantity}
+    </div>
+
+    <button
+      onClick={() => setQuantity((q) => q + 1)}
+      className="w-12 h-12 rounded-xl border bg-white text-2xl font-bold"
+    >
+      +
+    </button>
+  </div>
+
+  <div className="mt-4 text-lg font-bold text-green-600">
+    Total: ${finalPrice.toFixed(2)}
+  </div>
+</div>
               <span>{product.sold_count || 0} sold</span>
             </div>
           </div>
@@ -139,11 +168,13 @@ export default function ProductDetailPage() {
           </div>
 
           <Link
-            href={`/payment?product=${encodeURIComponent(
-              product.title
-            )}&amount=${encodeURIComponent(
-              String(finalPrice)
-            )}&type=${encodeURIComponent(product.product_type || "other")}`}
+         href={`/payment?product=${encodeURIComponent(
+  product.title
+)}&amount=${encodeURIComponent(
+  String(finalPrice)
+)}&quantity=${quantity}&type=${encodeURIComponent(
+  product.product_type || "other"
+)}`}
             className="block text-center bg-black text-white py-5 rounded-2xl font-extrabold text-lg hover:bg-slate-800"
           >
             Buy Now

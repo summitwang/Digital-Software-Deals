@@ -6,14 +6,27 @@ import Link from "next/link";
 
 const WALLET_ADDRESS = "TTmc9PhAioNeRVdh5Nb9TZZWJC6dqDZH4o";
 
+function money(value: number) {
+  return value.toFixed(2);
+}
+
 function PaymentContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
   const product = searchParams.get("product") || "Unknown Product";
-  const amount = searchParams.get("amount") || "0";
-  const quantity = searchParams.get("quantity") || "1";
+  const amountFromUrl = Number(searchParams.get("amount") || "0");
+  const quantityFromUrl = Number(searchParams.get("quantity") || "1");
   const productType = searchParams.get("type") || "other";
+
+  const [quantity, setQuantity] = useState(
+    quantityFromUrl > 0 ? quantityFromUrl : 1
+  );
+
+  const unitPrice =
+    quantityFromUrl > 0 ? amountFromUrl / quantityFromUrl : amountFromUrl;
+
+  const totalAmount = unitPrice * quantity;
 
   const [form, setForm] = useState({
     customer_name: "",
@@ -61,7 +74,7 @@ function PaymentContent() {
       method: "POST",
       body: JSON.stringify({
         product,
-        amount,
+        amount: money(totalAmount),
         quantity,
         product_type: productType,
         ...form,
@@ -98,8 +111,36 @@ function PaymentContent() {
 
           <div className="grid md:grid-cols-2 gap-4 mb-8">
             <Info title="Product" value={product} />
-            <Info title="Quantity" value={quantity} />
-            <Info title="Amount" value={`$${amount} USDT`} green />
+
+            <div className="border rounded-2xl p-5 bg-slate-50">
+              <p className="text-slate-500 text-sm mb-3">Quantity</p>
+
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                  className="w-11 h-11 rounded-xl border bg-white text-xl font-bold"
+                >
+                  -
+                </button>
+
+                <div className="text-2xl font-extrabold w-12 text-center">
+                  {quantity}
+                </div>
+
+                <button
+                  onClick={() => setQuantity((q) => q + 1)}
+                  className="w-11 h-11 rounded-xl border bg-white text-xl font-bold"
+                >
+                  +
+                </button>
+              </div>
+
+              <p className="text-sm text-slate-500 mt-3">
+                Unit price: ${money(unitPrice)}
+              </p>
+            </div>
+
+            <Info title="Amount" value={`$${money(totalAmount)} USDT`} green />
             <Info title="Status" value="Waiting for payment" yellow />
             <Info title="Network" value="TRC20 only" />
           </div>
@@ -121,7 +162,8 @@ function PaymentContent() {
             </div>
 
             <p className="text-sm text-slate-600 mt-4">
-              ⚠️ Only send via TRC20 network. Wrong network payments may be lost.
+              ⚠️ Only send via TRC20 network. Wrong network payments may be
+              lost.
             </p>
           </div>
 

@@ -98,10 +98,10 @@ async function verifyUsdtPayment(txid: string, expectedAmount: number) {
 
   return {
     ok: true,
-    paidAmount,
+    paidAmount: expectedAmount,
   };
 }
-*/
+
 export async function POST(req: Request) {
   const ip = getIp(req);
 

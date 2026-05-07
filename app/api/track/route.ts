@@ -15,7 +15,7 @@ export async function GET(req: Request) {
   const { data, error } = await supabaseAdmin
     .from("orders")
     .select(
-      "order_no, product, amount, status, product_type, license_key, error_code, installation_id, confirmation_id, account_email, account_password, tutorial_link, delivery_note, created_at"
+      "order_no, product, amount, quantity, status, product_type, license_key, error_code, installation_id, confirmation_id, account_email, account_password, tutorial_link, delivery_note, created_at"
     )
     .eq("order_no", orderNo)
     .single();

@@ -34,25 +34,17 @@ function isLimited(ip: string) {
 
 async function verifyUsdtPayment(txid: string, expectedAmount: number) {
   if (!USDT_ADDRESS) {
-    return {
-      ok: false,
-      error: "USDT wallet address is not configured.",
-    };
+    return { ok: false, error: "USDT wallet address is not configured." };
   }
 
   const url =
     `https://api.trongrid.io/v1/accounts/${USDT_ADDRESS}/transactions/trc20` +
     `?only_confirmed=true&limit=200&contract_address=${USDT_CONTRACT}`;
 
-  const res = await fetch(url, {
-    cache: "no-store",
-  });
+  const res = await fetch(url, { cache: "no-store" });
 
   if (!res.ok) {
-    return {
-      ok: false,
-      error: "Unable to verify transaction right now.",
-    };
+    return { ok: false, error: "Unable to verify transaction right now." };
   }
 
   const json = await res.json();
@@ -96,10 +88,7 @@ async function verifyUsdtPayment(txid: string, expectedAmount: number) {
     };
   }
 
-  return {
-    ok: true,
-    paidAmount,
-  };
+  return { ok: true, paidAmount };
 }
 
 export async function POST(req: Request) {
@@ -131,6 +120,9 @@ export async function POST(req: Request) {
     screenshot_name,
   } = body;
 
+  const orderQuantity = Number(quantity || 1);
+  const expectedAmount = Number(amount);
+
   if (!product || !amount || !customer_email || !txid || !screenshot_base64) {
     return NextResponse.json(
       { error: "Email, TxID and payment screenshot are required." },
@@ -145,7 +137,26 @@ export async function POST(req: Request) {
     );
   }
 
-  const expectedAmount = Number(amount);
+  const { data: productData, error: productError } = await supabaseAdmin
+    .from("products")
+    .select("id, stock")
+    .eq("title", product)
+    .eq("is_active", true)
+    .maybeSingle();
+
+  if (productError || !productData) {
+    return NextResponse.json(
+      { error: "Product not found." },
+      { status: 404 }
+    );
+  }
+
+  if (Number(productData.stock || 0) < orderQuantity) {
+    return NextResponse.json(
+      { error: "Not enough stock available." },
+      { status: 400 }
+    );
+  }
 
   const { data: existingTx } = await supabaseAdmin
     .from("orders")
@@ -163,10 +174,7 @@ export async function POST(req: Request) {
   const verifyResult = await verifyUsdtPayment(txid, expectedAmount);
 
   if (!verifyResult.ok) {
-    return NextResponse.json(
-      { error: verifyResult.error },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: verifyResult.error }, { status: 400 });
   }
 
   const order_no = "ORD-" + Date.now();
@@ -202,6 +210,17 @@ export async function POST(req: Request) {
     );
   }
 
+  const newStock = Number(productData.stock || 0) - orderQuantity;
+
+  const { error: stockError } = await supabaseAdmin
+    .from("products")
+    .update({ stock: newStock })
+    .eq("id", productData.id);
+
+  if (stockError) {
+    return NextResponse.json({ error: stockError.message }, { status: 500 });
+  }
+
   const { data, error } = await supabaseAdmin
     .from("orders")
     .insert([
@@ -209,7 +228,7 @@ export async function POST(req: Request) {
         order_no,
         product,
         amount: expectedAmount,
-        quantity: Number(quantity || 1),
+        quantity: orderQuantity,
         product_type: product_type || "",
         customer_name,
         customer_email,
@@ -217,6 +236,7 @@ export async function POST(req: Request) {
         txid,
         payment_screenshot_url,
         status: "paid",
+        stock_deducted: true,
         delivery_note: `USDT payment verified automatically. Paid amount: ${verifyResult.paidAmount} USDT`,
       },
     ])
@@ -224,6 +244,11 @@ export async function POST(req: Request) {
     .single();
 
   if (error) {
+    await supabaseAdmin
+      .from("products")
+      .update({ stock: Number(productData.stock || 0) })
+      .eq("id", productData.id);
+
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 

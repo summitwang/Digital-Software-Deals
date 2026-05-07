@@ -3,12 +3,14 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 export async function GET(
   req: Request,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await context.params;
+
   const { data, error } = await supabaseAdmin
     .from("products")
     .select("*")
-    .eq("id", params.id)
+    .eq("id", id)
     .eq("is_active", true)
     .single();
 

@@ -195,7 +195,7 @@ export default function HomePage() {
                     </div>
 
                     <Link
-  href={`/product/${product.id}`}
+  href={`/products/${product.id}`}
   className="block text-center bg-white border border-slate-300 text-slate-900 py-3 rounded-xl font-bold hover:bg-slate-50 mb-3"
 >
   View Details

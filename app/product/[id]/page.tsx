@@ -17,10 +17,14 @@ type Product = {
   sold_count?: number;
 };
 
+function money(value: number) {
+  return value.toFixed(2);
+}
+
 function getDiscount(original?: number, promo?: number, price?: number) {
-  const finalPrice = promo || price || 0;
-  if (!original || original <= finalPrice) return null;
-  return Math.round(((original - finalPrice) / original) * 100);
+  const unitPrice = promo || price || 0;
+  if (!original || original <= unitPrice) return null;
+  return Math.round(((original - unitPrice) / original) * 100);
 }
 
 export default function ProductDetailPage() {
@@ -39,11 +43,7 @@ export default function ProductDetailPage() {
   }, [id]);
 
   if (loading) {
-    return (
-      <main className="min-h-screen bg-slate-100 p-10">
-        Loading product...
-      </main>
-    );
+    return <main className="min-h-screen bg-slate-100 p-10">Loading...</main>;
   }
 
   if (!product) {
@@ -54,8 +54,8 @@ export default function ProductDetailPage() {
     );
   }
 
-  const unitPrice = product.promo_price || product.price;
-const finalPrice = unitPrice * quantity;
+  const unitPrice = Number(product.promo_price || product.price || 0);
+  const totalPrice = unitPrice * quantity;
   const discount = getDiscount(
     product.original_price,
     product.promo_price,
@@ -113,50 +113,51 @@ const finalPrice = unitPrice * quantity;
           <p className="text-slate-600 text-lg mb-6">{product.description}</p>
 
           <div className="bg-white border rounded-3xl p-6 shadow mb-6">
-            <p className="text-slate-500 mb-1">Special Price</p>
+            <p className="text-slate-500 mb-1">Unit Price</p>
 
             <div className="flex items-end gap-4">
               <p className="text-5xl font-extrabold text-green-600">
-                ${finalPrice}
+                ${money(unitPrice)}
               </p>
 
-              {product.original_price && product.original_price > finalPrice && (
+              {product.original_price && product.original_price > unitPrice && (
                 <p className="text-2xl text-slate-400 line-through mb-2">
-                  ${product.original_price}
+                  ${money(Number(product.original_price))}
                 </p>
               )}
             </div>
 
             <div className="mt-4 flex gap-4 text-sm text-slate-600">
               <span>⭐⭐⭐⭐⭐ 5.0</span>
-              <div className="mt-6">
-  <p className="text-slate-500 mb-2 font-semibold">Quantity</p>
-
-  <div className="flex items-center gap-4">
-    <button
-      onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-      className="w-12 h-12 rounded-xl border bg-white text-2xl font-bold"
-    >
-      -
-    </button>
-
-    <div className="text-2xl font-extrabold w-12 text-center">
-      {quantity}
-    </div>
-
-    <button
-      onClick={() => setQuantity((q) => q + 1)}
-      className="w-12 h-12 rounded-xl border bg-white text-2xl font-bold"
-    >
-      +
-    </button>
-  </div>
-
-  <div className="mt-4 text-lg font-bold text-green-600">
-    Total: ${finalPrice.toFixed(2)}
-  </div>
-</div>
               <span>{product.sold_count || 0} sold</span>
+            </div>
+
+            <div className="mt-6">
+              <p className="text-slate-500 mb-2 font-semibold">Quantity</p>
+
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                  className="w-12 h-12 rounded-xl border bg-white text-2xl font-bold"
+                >
+                  -
+                </button>
+
+                <div className="text-2xl font-extrabold w-12 text-center">
+                  {quantity}
+                </div>
+
+                <button
+                  onClick={() => setQuantity((q) => q + 1)}
+                  className="w-12 h-12 rounded-xl border bg-white text-2xl font-bold"
+                >
+                  +
+                </button>
+              </div>
+
+              <div className="mt-4 text-lg font-bold text-green-600">
+                Total: ${money(totalPrice)}
+              </div>
             </div>
           </div>
 
@@ -168,13 +169,13 @@ const finalPrice = unitPrice * quantity;
           </div>
 
           <Link
-         href={`/payment?product=${encodeURIComponent(
-  product.title
-)}&amount=${encodeURIComponent(
-  String(finalPrice)
-)}&quantity=${quantity}&type=${encodeURIComponent(
-  product.product_type || "other"
-)}`}
+            href={`/payment?product=${encodeURIComponent(
+              product.title
+            )}&amount=${encodeURIComponent(
+              money(totalPrice)
+            )}&quantity=${quantity}&type=${encodeURIComponent(
+              product.product_type || "other"
+            )}`}
             className="block text-center bg-black text-white py-5 rounded-2xl font-extrabold text-lg hover:bg-slate-800"
           >
             Buy Now

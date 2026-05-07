@@ -8,6 +8,7 @@ type Order = {
   order_no: string;
   product: string;
   amount: number;
+  quantity?: number;
   status: string;
   product_type?: string;
   license_key?: string;
@@ -167,6 +168,7 @@ function TrackContent() {
               <div className="grid md:grid-cols-2 gap-4">
                 <Info label="Product" value={order.product} />
                 <Info label="Amount" value={`$${order.amount} USDT`} />
+                <Info label="Quantity" value={String(order.quantity || 1)} />
                 <Info label="Status" value={currentStatus.text} color={currentStatus.color} />
                 <Info
                   label="Created At"

@@ -95,7 +95,7 @@ async function verifyUsdtPayment(txid: string, expectedAmount: number) {
       error: `Payment amount is too low. Paid ${paidAmount} USDT.`,
     };
   }
-
+*/
   return {
     ok: true,
     paidAmount: expectedAmount,

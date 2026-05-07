@@ -168,7 +168,11 @@ function TrackContent() {
                 <Info label="Product" value={order.product} />
                 <Info label="Amount" value={`$${order.amount} USDT`} />
                 <Info label="Quantity" value={String(order.quantity || 1)} />
-                <Info label="Status" value={currentStatus.text} color={currentStatus.color} />
+                <Info
+                  label="Status"
+                  value={currentStatus.text}
+                  color={currentStatus.color}
+                />
                 <Info
                   label="Created At"
                   value={new Date(order.created_at).toLocaleString()}
@@ -176,30 +180,44 @@ function TrackContent() {
               </div>
 
               {order.license_key && (
-                <DeliveryBox title="License Key" value={order.license_key} />
+                <CopyList
+                  title="License Key"
+                  value={order.license_key}
+                  itemName="Key"
+                />
               )}
 
               {order.account_email && (
-                <AccountList value={order.account_email} />
+                <CopyList
+                  title="Account Delivery"
+                  value={order.account_email}
+                  itemName="Account"
+                />
               )}
 
               {order.confirmation_id && (
-                <DeliveryBox
+                <CopyList
                   title="Confirmation ID"
                   value={order.confirmation_id}
+                  itemName="Confirmation ID"
                 />
               )}
 
               {order.tutorial_link && (
                 <div className="bg-blue-50 border border-blue-200 text-blue-700 rounded-xl p-4">
                   <p className="font-bold mb-2">Tutorial / Guide</p>
-                  <a
-                    href={order.tutorial_link}
-                    target="_blank"
-                    className="underline break-all"
-                  >
-                    {order.tutorial_link}
-                  </a>
+
+                  <div className="flex flex-col md:flex-row gap-3 md:items-center">
+                    <a
+                      href={order.tutorial_link}
+                      target="_blank"
+                      className="underline break-all flex-1"
+                    >
+                      {order.tutorial_link}
+                    </a>
+
+                    <CopyButton text={order.tutorial_link} />
+                  </div>
                 </div>
               )}
 
@@ -217,7 +235,8 @@ function TrackContent() {
                   </h3>
 
                   <p className="text-sm text-slate-600 mb-4">
-                    If activation fails, submit your error code or Installation ID here.
+                    If activation fails, submit your error code or Installation
+                    ID here.
                   </p>
 
                   <input
@@ -246,7 +265,8 @@ function TrackContent() {
               )}
 
               <div className="bg-blue-50 border border-blue-200 text-blue-700 rounded-xl p-4 text-sm">
-                If your payment has been submitted, please wait for verification and delivery.
+                If your payment has been submitted, please wait for verification
+                and delivery.
               </div>
             </div>
           )}
@@ -282,25 +302,88 @@ function DeliveryBox({ title, value }: { title: string; value: string }) {
   );
 }
 
-function AccountList({ value }: { value: string }) {
+function CopyList({
+  title,
+  value,
+  itemName,
+}: {
+  title: string;
+  value: string;
+  itemName: string;
+}) {
+  const [showAll, setShowAll] = useState(false);
+
   const lines = value
     .split("\n")
     .map((line) => line.trim())
     .filter(Boolean);
 
+  const shouldCollapse = lines.length > 3;
+  const visibleLines = showAll || !shouldCollapse ? lines : lines.slice(0, 3);
+
   return (
     <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl p-4">
-      <p className="font-bold mb-3">Account Delivery</p>
+      <div className="flex items-center justify-between gap-3 mb-3">
+        <p className="font-bold">{title}</p>
+
+        {shouldCollapse && (
+          <button
+            onClick={() => setShowAll(!showAll)}
+            className="text-sm bg-white border px-3 py-2 rounded-lg font-bold"
+          >
+            {showAll ? "Hide" : `Show All (${lines.length})`}
+          </button>
+        )}
+      </div>
 
       <div className="space-y-3">
-        {lines.map((line, index) => (
-          <div key={index} className="bg-white border rounded-xl p-3">
-            <p className="text-sm text-slate-500 mb-1">Account #{index + 1}</p>
-            <p className="font-bold break-all whitespace-pre-wrap">{line}</p>
+        {visibleLines.map((line, index) => (
+          <div
+            key={`${line}-${index}`}
+            className="bg-white border rounded-xl p-4"
+          >
+            <div className="flex flex-col md:flex-row md:items-center gap-3">
+              <div className="flex-1">
+                <p className="text-sm text-slate-500 mb-1">
+                  {itemName} #{index + 1}
+                </p>
+
+                <p className="font-bold break-all whitespace-pre-wrap">
+                  {line}
+                </p>
+              </div>
+
+              <CopyButton text={line} />
+            </div>
           </div>
         ))}
       </div>
+
+      {shouldCollapse && !showAll && (
+        <p className="text-sm text-slate-500 mt-3">
+          Showing first 3 of {lines.length}. Click Show All to view all.
+        </p>
+      )}
     </div>
+  );
+}
+
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+
+  async function copy() {
+    await navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  }
+
+  return (
+    <button
+      onClick={copy}
+      className="bg-black text-white px-4 py-2 rounded-lg font-bold text-sm shrink-0"
+    >
+      {copied ? "Copied" : "Copy"}
+    </button>
   );
 }
 

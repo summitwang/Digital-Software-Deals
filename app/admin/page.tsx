@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 
 type Product = {
@@ -14,15 +14,27 @@ type Product = {
   tag?: string;
   product_type?: string;
   sold_count?: number;
+  stock?: number;
 };
+
+const productTypes = [
+  "windows_key",
+  "office_key",
+  "office_account",
+  "adobe_account",
+  "autodesk_account",
+  "gemini_account",
+  "other",
+];
 
 export default function AdminPage() {
   const [password, setPassword] = useState("");
   const [loggedIn, setLoggedIn] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
-  const [form, setForm] = useState({
+  const emptyForm = {
     title: "",
     description: "",
     original_price: "",
@@ -32,7 +44,10 @@ export default function AdminPage() {
     product_type: "office_account",
     sold_count: "100",
     stock: "999",
-  });
+  };
+
+  const [form, setForm] = useState(emptyForm);
+  const [editForm, setEditForm] = useState(emptyForm);
 
   async function login() {
     const res = await fetch("/api/admin-login", {
@@ -42,12 +57,13 @@ export default function AdminPage() {
 
     const data = await res.json();
 
-    if (data.success) {
-      setLoggedIn(true);
-      loadProducts();
-    } else {
+    if (!data.success) {
       alert("Wrong password");
+      return;
     }
+
+    setLoggedIn(true);
+    loadProducts();
   }
 
   async function loadProducts() {
@@ -56,9 +72,7 @@ export default function AdminPage() {
     setProducts(data.products || []);
   }
 
-  async function handleImage(file?: File) {
-    if (!file) return;
-
+  async function uploadImage(file: File, mode: "add" | "edit") {
     if (file.size > 3 * 1024 * 1024) {
       alert("Image must be under 3MB");
       return;
@@ -86,7 +100,12 @@ export default function AdminPage() {
         return;
       }
 
-      setForm({ ...form, image_url: data.image_url });
+      if (mode === "add") {
+        setForm((prev) => ({ ...prev, image_url: data.image_url }));
+      } else {
+        setEditForm((prev) => ({ ...prev, image_url: data.image_url }));
+      }
+
       alert("Image uploaded");
     };
 
@@ -95,7 +114,7 @@ export default function AdminPage() {
 
   async function addProduct() {
     if (!form.title || !form.promo_price) {
-      alert("Please enter product title and promo price");
+      alert("Please enter title and promo price");
       return;
     }
 
@@ -115,20 +134,46 @@ export default function AdminPage() {
       return;
     }
 
-    alert("Product added successfully");
+    alert("Product added");
+    setForm(emptyForm);
+    loadProducts();
+  }
 
-    setForm({
-      title: "",
-      description: "",
-      original_price: "",
-      promo_price: "",
-      image_url: "",
-      tag: "Best Seller",
-      product_type: "office_account",
-      sold_count: "100",
-      stock: "999",
+  function startEdit(product: Product) {
+    setEditingId(product.id);
+    setEditForm({
+      title: product.title || "",
+      description: product.description || "",
+      original_price: String(product.original_price || ""),
+      promo_price: String(product.promo_price || product.price || ""),
+      image_url: product.image_url || "",
+      tag: product.tag || "Best Seller",
+      product_type: product.product_type || "other",
+      sold_count: String(product.sold_count || 0),
+      stock: String(product.stock ?? 999),
+    });
+  }
+
+  async function saveEdit(id: string) {
+    const res = await fetch("/api/products", {
+      method: "PATCH",
+      body: JSON.stringify({
+        id,
+        ...editForm,
+        price: editForm.promo_price,
+        password,
+      }),
     });
 
+    const data = await res.json();
+
+    if (!res.ok) {
+      alert(data.error || "Update failed");
+      return;
+    }
+
+    alert("Product updated");
+    setEditingId(null);
     loadProducts();
   }
 
@@ -182,7 +227,7 @@ export default function AdminPage() {
           <div>
             <h1 className="text-3xl font-extrabold">Product Admin</h1>
             <p className="text-slate-600 mt-2">
-              Add products, upload images, and set original/promo prices.
+              Add, edit, upload images, prices and stock.
             </p>
           </div>
 
@@ -200,97 +245,12 @@ export default function AdminPage() {
         <section className="bg-white rounded-3xl shadow p-6 mb-10">
           <h2 className="text-2xl font-bold mb-5">Add Product</h2>
 
-          <div className="grid md:grid-cols-2 gap-4">
-            <Input
-              placeholder="Product title"
-              value={form.title}
-              onChange={(v) => setForm({ ...form, title: v })}
-            />
-
-            <Input
-              placeholder="Original price, e.g. 49.99"
-              type="number"
-              value={form.original_price}
-              onChange={(v) => setForm({ ...form, original_price: v })}
-            />
-
-            <Input
-              placeholder="Promo price, e.g. 19.99"
-              type="number"
-              value={form.promo_price}
-              onChange={(v) => setForm({ ...form, promo_price: v })}
-            />
-
-            <Input
-              placeholder="Tag, e.g. Best Seller"
-              value={form.tag}
-              onChange={(v) => setForm({ ...form, tag: v })}
-            />
-
-            <select
-              className="border p-4 rounded-xl"
-              value={form.product_type}
-              onChange={(e) =>
-                setForm({ ...form, product_type: e.target.value })
-              }
-            >
-              <option value="windows_key">windows_key</option>
-              <option value="office_key">office_key</option>
-              <option value="office_account">office_account</option>
-              <option value="adobe_account">adobe_account</option>
-              <option value="autodesk_account">autodesk_account</option>
-              <option value="gemini_account">gemini_account</option>
-              <option value="other">other</option>
-            </select>
-
-            <Input
-              placeholder="Sold count"
-              type="number"
-              value={form.sold_count}
-              onChange={(v) => setForm({ ...form, sold_count: v })}
-            />
-
-            <Input
-  placeholder="Stock, e.g. 999"
-  type="number"
-  value={form.stock}
-  onChange={(v) => setForm({ ...form, stock: v })}
-/>
-
-            <div className="border rounded-xl p-4 md:col-span-2">
-              <p className="font-bold mb-2">Product Image</p>
-
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(e) => handleImage(e.target.files?.[0])}
-              />
-
-              {uploading && <p className="text-blue-600 mt-2">Uploading...</p>}
-
-              {form.image_url && (
-                <div className="mt-4">
-                  <img
-                    src={form.image_url}
-                    alt="preview"
-                    className="w-48 rounded-xl border"
-                  />
-                  <p className="text-xs text-slate-500 break-all mt-2">
-                    {form.image_url}
-                  </p>
-                </div>
-              )}
-            </div>
-
-            <textarea
-              className="border p-4 rounded-xl md:col-span-2 min-h-[120px]"
-              placeholder="Product description"
-              value={form.description}
-              onChange={(e) =>
-                setForm({ ...form, description: e.target.value })
-              }
-            />
-          </div>
+          <ProductForm
+            form={form}
+            setForm={setForm}
+            uploading={uploading}
+            onImage={(file) => uploadImage(file, "add")}
+          />
 
           <button
             onClick={addProduct}
@@ -304,50 +264,91 @@ export default function AdminPage() {
           <h2 className="text-2xl font-bold mb-5">Products</h2>
 
           <div className="space-y-4">
-            {products.map((product) => (
-              <div
-                key={product.id}
-                className="border rounded-2xl p-4 flex flex-col md:flex-row md:justify-between gap-4"
-              >
-                <div className="flex gap-4">
-                  {product.image_url && (
-                    <img
-                      src={product.image_url}
-                      alt={product.title}
-                      className="w-24 h-24 object-cover rounded-xl border"
-                    />
-                  )}
+            {products.map((product) => {
+              const isEditing = editingId === product.id;
 
-                  <div>
-                    <h3 className="font-bold text-xl">{product.title}</h3>
-                    <p className="text-slate-600">{product.description}</p>
+              return (
+                <div key={product.id} className="border rounded-2xl p-5">
+                  {!isEditing ? (
+                    <div className="flex flex-col md:flex-row md:justify-between gap-4">
+                      <div className="flex gap-4">
+                        {product.image_url && (
+                          <img
+                            src={product.image_url}
+                            alt={product.title}
+                            className="w-24 h-24 object-cover rounded-xl border"
+                          />
+                        )}
 
-                    <div className="mt-2 flex gap-3 items-center">
-                      {product.original_price && (
-                        <span className="line-through text-slate-400">
-                          ${product.original_price}
-                        </span>
-                      )}
-                      <span className="font-bold text-green-600 text-xl">
-                        ${product.promo_price || product.price}
-                      </span>
+                        <div>
+                          <h3 className="font-bold text-xl">{product.title}</h3>
+                          <p className="text-slate-600">{product.description}</p>
+
+                          <div className="mt-2 flex gap-3 items-center">
+                            {product.original_price && (
+                              <span className="line-through text-slate-400">
+                                ${product.original_price}
+                              </span>
+                            )}
+
+                            <span className="font-bold text-green-600 text-xl">
+                              ${product.promo_price || product.price}
+                            </span>
+                          </div>
+
+                          <p className="text-sm text-slate-500">
+                            {product.tag} · {product.product_type} ·{" "}
+                            {product.sold_count || 0} sold · Stock:{" "}
+                            {product.stock ?? 999}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex gap-3 h-fit">
+                        <button
+                          onClick={() => startEdit(product)}
+                          className="bg-blue-600 text-white px-4 py-2 rounded-xl"
+                        >
+                          Edit
+                        </button>
+
+                        <button
+                          onClick={() => deleteProduct(product.id)}
+                          className="bg-red-500 text-white px-4 py-2 rounded-xl"
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </div>
+                  ) : (
+                    <div>
+                      <ProductForm
+                        form={editForm}
+                        setForm={setEditForm}
+                        uploading={uploading}
+                        onImage={(file) => uploadImage(file, "edit")}
+                      />
 
-                    <p className="text-sm text-slate-500">
-                      {product.tag} · {product.product_type} ·{" "}
-                      {product.sold_count || 0} sold
-                    </p>
-                  </div>
+                      <div className="flex gap-3 mt-5">
+                        <button
+                          onClick={() => saveEdit(product.id)}
+                          className="bg-emerald-500 text-black px-5 py-3 rounded-xl font-extrabold"
+                        >
+                          Save
+                        </button>
+
+                        <button
+                          onClick={() => setEditingId(null)}
+                          className="bg-slate-700 text-white px-5 py-3 rounded-xl font-bold"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
-
-                <button
-                  onClick={() => deleteProduct(product.id)}
-                  className="bg-red-500 text-white px-4 py-2 rounded-xl h-fit"
-                >
-                  Delete
-                </button>
-              </div>
-            ))}
+              );
+            })}
 
             {products.length === 0 && (
               <p className="text-slate-500">No products yet.</p>
@@ -356,6 +357,109 @@ export default function AdminPage() {
         </section>
       </div>
     </main>
+  );
+}
+
+function ProductForm({
+  form,
+  setForm,
+  uploading,
+  onImage,
+}: {
+  form: any;
+  setForm: (value: any) => void;
+  uploading: boolean;
+  onImage: (file: File) => void;
+}) {
+  return (
+    <div className="grid md:grid-cols-2 gap-4">
+      <Input
+        placeholder="Product title"
+        value={form.title}
+        onChange={(v) => setForm({ ...form, title: v })}
+      />
+
+      <Input
+        placeholder="Original price, e.g. 49.99"
+        type="number"
+        value={form.original_price}
+        onChange={(v) => setForm({ ...form, original_price: v })}
+      />
+
+      <Input
+        placeholder="Promo price, e.g. 19.99"
+        type="number"
+        value={form.promo_price}
+        onChange={(v) => setForm({ ...form, promo_price: v })}
+      />
+
+      <Input
+        placeholder="Tag, e.g. Best Seller"
+        value={form.tag}
+        onChange={(v) => setForm({ ...form, tag: v })}
+      />
+
+      <select
+        className="border p-4 rounded-xl"
+        value={form.product_type}
+        onChange={(e) => setForm({ ...form, product_type: e.target.value })}
+      >
+        {productTypes.map((type) => (
+          <option key={type} value={type}>
+            {type}
+          </option>
+        ))}
+      </select>
+
+      <Input
+        placeholder="Sold count"
+        type="number"
+        value={form.sold_count}
+        onChange={(v) => setForm({ ...form, sold_count: v })}
+      />
+
+      <Input
+        placeholder="Stock, e.g. 999"
+        type="number"
+        value={form.stock}
+        onChange={(v) => setForm({ ...form, stock: v })}
+      />
+
+      <div className="border rounded-xl p-4 md:col-span-2">
+        <p className="font-bold mb-2">Product Image</p>
+
+        <input
+          type="file"
+          accept="image/*"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) onImage(file);
+          }}
+        />
+
+        {uploading && <p className="text-blue-600 mt-2">Uploading...</p>}
+
+        {form.image_url && (
+          <div className="mt-4">
+            <img
+              src={form.image_url}
+              alt="preview"
+              className="w-48 rounded-xl border"
+            />
+            <p className="text-xs text-slate-500 break-all mt-2">
+              {form.image_url}
+            </p>
+          </div>
+        )}
+      </div>
+
+      <textarea
+        className="border p-4 rounded-xl md:col-span-2 min-h-[120px]"
+        placeholder="Product description"
+        value={form.description}
+        onChange={(e) => setForm({ ...form, description: e.target.value })}
+      />
+    </div>
   );
 }
 

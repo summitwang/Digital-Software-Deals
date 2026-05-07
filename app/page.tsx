@@ -14,6 +14,7 @@ type Product = {
   tag?: string;
   product_type?: string;
   sold_count?: number;
+  stock?: number;
 };
 
 function getDiscount(original?: number, promo?: number, price?: number) {
@@ -127,6 +128,8 @@ export default function HomePage() {
                 product.promo_price,
                 product.price
               );
+              const stock = Number(product.stock ?? 999);
+              const soldOut = stock <= 0;
 
               return (
                 <div
@@ -137,6 +140,12 @@ export default function HomePage() {
                     {discount && (
                       <div className="absolute top-4 left-4 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-extrabold">
                         -{discount}%
+                      </div>
+                    )}
+
+                    {soldOut && (
+                      <div className="absolute top-4 right-4 bg-slate-900 text-white px-3 py-1 rounded-full text-sm font-extrabold">
+                        Sold Out
                       </div>
                     )}
 
@@ -192,26 +201,44 @@ export default function HomePage() {
                       <div className="text-yellow-500 text-sm mt-2">
                         ⭐⭐⭐⭐⭐
                       </div>
+
+                      <p
+                        className={`text-sm font-bold mt-2 ${
+                          soldOut ? "text-red-600" : "text-emerald-600"
+                        }`}
+                      >
+                        {soldOut ? "Out of stock" : `Stock: ${stock}`}
+                      </p>
                     </div>
 
                     <Link
-  href={`/product/${product.id}`}
-  className="block text-center bg-white border border-slate-300 text-slate-900 py-3 rounded-xl font-bold hover:bg-slate-50 mb-3"
->
-  View Details
-</Link>
-                    <Link
-                      href={`/payment?product=${encodeURIComponent(
-                        product.title
-                      )}&amount=${encodeURIComponent(
-                        String(finalPrice)
-                      )}&type=${encodeURIComponent(
-                        product.product_type || "other"
-                      )}`}
-                      className="block text-center bg-black text-white py-4 rounded-xl font-bold hover:bg-slate-800"
+                      href={`/product/${product.id}`}
+                      className="block text-center bg-white border border-slate-300 text-slate-900 py-3 rounded-xl font-bold hover:bg-slate-50 mb-3"
                     >
-                      Buy Now
+                      View Details
                     </Link>
+
+                    {soldOut ? (
+                      <button
+                        disabled
+                        className="block w-full text-center bg-slate-300 text-slate-500 py-4 rounded-xl font-bold cursor-not-allowed"
+                      >
+                        Sold Out
+                      </button>
+                    ) : (
+                      <Link
+                        href={`/payment?product=${encodeURIComponent(
+                          product.title
+                        )}&amount=${encodeURIComponent(
+                          String(finalPrice)
+                        )}&quantity=1&type=${encodeURIComponent(
+                          product.product_type || "other"
+                        )}`}
+                        className="block text-center bg-black text-white py-4 rounded-xl font-bold hover:bg-slate-800"
+                      >
+                        Buy Now
+                      </Link>
+                    )}
                   </div>
                 </div>
               );

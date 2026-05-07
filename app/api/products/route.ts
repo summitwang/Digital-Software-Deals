@@ -36,6 +36,7 @@ export async function POST(req: Request) {
     tag,
     product_type,
     sold_count,
+    stock,
   } = body;
 
   const finalPrice = Number(promo_price || price || 0);
@@ -53,6 +54,7 @@ export async function POST(req: Request) {
         tag,
         product_type,
         sold_count: Number(sold_count || 0),
+        stock: Number(stock || 999),
         is_active: true,
       },
     ])

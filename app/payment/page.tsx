@@ -12,12 +12,15 @@ function PaymentContent() {
 
   const product = searchParams.get("product") || "Unknown Product";
   const amount = searchParams.get("amount") || "0";
+  const quantity = searchParams.get("quantity") || "1";
+  const productType = searchParams.get("type") || "other";
 
   const [form, setForm] = useState({
     customer_name: "",
     customer_email: "",
     address: "",
     txid: "",
+    website: "",
   });
 
   const [screenshotBase64, setScreenshotBase64] = useState("");
@@ -42,9 +45,7 @@ function PaymentContent() {
     setScreenshotName(file.name);
 
     const reader = new FileReader();
-    reader.onload = () => {
-      setScreenshotBase64(String(reader.result));
-    };
+    reader.onload = () => setScreenshotBase64(String(reader.result));
     reader.readAsDataURL(file);
   }
 
@@ -61,6 +62,8 @@ function PaymentContent() {
       body: JSON.stringify({
         product,
         amount,
+        quantity,
+        product_type: productType,
         ...form,
         screenshot_base64: screenshotBase64,
         screenshot_name: screenshotName,
@@ -86,9 +89,7 @@ function PaymentContent() {
         </Link>
 
         <div className="mt-6 bg-white border rounded-3xl p-8 shadow-xl">
-          <h1 className="text-3xl font-extrabold mb-2">
-            USDT TRC20 Payment
-          </h1>
+          <h1 className="text-3xl font-extrabold mb-2">USDT TRC20 Payment</h1>
 
           <p className="text-slate-600 mb-8">
             Please send the exact amount using TRC20 network, then submit TxID
@@ -96,27 +97,11 @@ function PaymentContent() {
           </p>
 
           <div className="grid md:grid-cols-2 gap-4 mb-8">
-            <div className="bg-slate-50 border rounded-2xl p-5">
-              <p className="text-slate-500 text-sm mb-1">Product</p>
-              <p className="font-bold text-lg">{product}</p>
-            </div>
-
-            <div className="bg-slate-50 border rounded-2xl p-5">
-              <p className="text-slate-500 text-sm mb-1">Amount</p>
-              <p className="font-extrabold text-2xl text-emerald-600">
-                ${amount} USDT
-              </p>
-            </div>
-
-            <div className="bg-slate-50 border rounded-2xl p-5">
-              <p className="text-slate-500 text-sm mb-1">Network</p>
-              <p className="font-bold">TRC20 only</p>
-            </div>
-
-            <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-5">
-              <p className="text-slate-500 text-sm mb-1">Status</p>
-              <p className="font-bold text-yellow-700">Waiting for payment</p>
-            </div>
+            <Info title="Product" value={product} />
+            <Info title="Quantity" value={quantity} />
+            <Info title="Amount" value={`$${amount} USDT`} green />
+            <Info title="Status" value="Waiting for payment" yellow />
+            <Info title="Network" value="TRC20 only" />
           </div>
 
           <div className="bg-yellow-50 border border-yellow-300 rounded-2xl p-5 mb-8">
@@ -136,14 +121,20 @@ function PaymentContent() {
             </div>
 
             <p className="text-sm text-slate-600 mt-4">
-              ⚠️ Only send via TRC20 network. Wrong network payments may be
-              lost.
+              ⚠️ Only send via TRC20 network. Wrong network payments may be lost.
             </p>
           </div>
 
           <h2 className="text-2xl font-bold mb-4">Submit Payment Proof</h2>
 
           <div className="space-y-4">
+            <input
+              className="hidden"
+              placeholder="website"
+              value={form.website}
+              onChange={(e) => setForm({ ...form, website: e.target.value })}
+            />
+
             <input
               className="w-full p-4 rounded-xl border border-slate-300"
               placeholder="Your Name"
@@ -177,7 +168,7 @@ function PaymentContent() {
             />
 
             <div className="bg-slate-50 border rounded-xl p-4">
-              <p className="font-bold mb-2">Upload Payment Screenshot</p>
+              <p className="font-bold mb-2">Upload Payment Screenshot *</p>
 
               <input
                 type="file"
@@ -203,6 +194,35 @@ function PaymentContent() {
         </div>
       </div>
     </main>
+  );
+}
+
+function Info({
+  title,
+  value,
+  green,
+  yellow,
+}: {
+  title: string;
+  value: string;
+  green?: boolean;
+  yellow?: boolean;
+}) {
+  return (
+    <div
+      className={`border rounded-2xl p-5 ${
+        yellow ? "bg-yellow-50 border-yellow-200" : "bg-slate-50"
+      }`}
+    >
+      <p className="text-slate-500 text-sm mb-1">{title}</p>
+      <p
+        className={`font-bold text-lg break-all ${
+          green ? "text-emerald-600 text-2xl" : ""
+        }`}
+      >
+        {value}
+      </p>
+    </div>
   );
 }
 

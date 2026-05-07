@@ -31,6 +31,7 @@ export default function AdminPage() {
     tag: "Best Seller",
     product_type: "office_account",
     sold_count: "100",
+    stock: "999",
   });
 
   async function login() {
@@ -125,6 +126,7 @@ export default function AdminPage() {
       tag: "Best Seller",
       product_type: "office_account",
       sold_count: "100",
+      stock: "999",
     });
 
     loadProducts();
@@ -247,6 +249,13 @@ export default function AdminPage() {
               value={form.sold_count}
               onChange={(v) => setForm({ ...form, sold_count: v })}
             />
+
+            <Input
+  placeholder="Stock, e.g. 999"
+  type="number"
+  value={form.stock}
+  onChange={(v) => setForm({ ...form, stock: v })}
+/>
 
             <div className="border rounded-xl p-4 md:col-span-2">
               <p className="font-bold mb-2">Product Image</p>

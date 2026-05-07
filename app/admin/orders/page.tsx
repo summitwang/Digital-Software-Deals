@@ -278,12 +278,13 @@ export default function AdminOrdersPage() {
               <div className="mb-5">{renderTypeHelp(order.product_type)}</div>
 
               <div className="grid md:grid-cols-2 gap-4">
-                <Field
-                  label="License Key"
-                  value={order.license_key || ""}
-                  placeholder="Windows / Office Key"
-                  onChange={(v) => updateLocalOrder(index, "license_key", v)}
-                />
+               <Field
+  label="License Key"
+  value={order.license_key || ""}
+  placeholder="One key per line"
+  multiline
+  onChange={(v) => updateLocalOrder(index, "license_key", v)}
+/>
 
                 <Field
                   label="Error Code"
@@ -307,18 +308,19 @@ export default function AdminOrdersPage() {
                 />
 
                 <Field
-                  label="Account Email"
-                  value={order.account_email || ""}
-                  placeholder="Account email to deliver"
-                  onChange={(v) => updateLocalOrder(index, "account_email", v)}
-                />
-
+  label="Account Email"
+  value={order.account_email || ""}
+  placeholder="One account email per line"
+  multiline
+  onChange={(v) => updateLocalOrder(index, "account_email", v)}
+/>
                 <Field
-                  label="Account Password"
-                  value={order.account_password || ""}
-                  placeholder="Account password"
-                  onChange={(v) => updateLocalOrder(index, "account_password", v)}
-                />
+  label="Account Password"
+  value={order.account_password || ""}
+  placeholder="One password per line"
+  multiline
+  onChange={(v) => updateLocalOrder(index, "account_password", v)}
+/>
 
                 <Field
                   label="Tutorial Link"
@@ -463,21 +465,33 @@ function Field({
   value,
   placeholder,
   onChange,
+  multiline = false,
 }: {
   label: string;
   value: string;
   placeholder: string;
   onChange: (value: string) => void;
+  multiline?: boolean;
 }) {
   return (
     <div>
       <label className="block font-bold mb-2">{label}</label>
-      <input
-        className="w-full border p-4 rounded-xl"
-        placeholder={placeholder}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-      />
+
+      {multiline ? (
+        <textarea
+          className="w-full border p-4 rounded-xl min-h-[140px] whitespace-pre-wrap"
+          placeholder={placeholder}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+        />
+      ) : (
+        <input
+          className="w-full border p-4 rounded-xl"
+          placeholder={placeholder}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+        />
+      )}
     </div>
   );
 }

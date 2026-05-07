@@ -4,7 +4,6 @@ import { useState } from "react";
 import Link from "next/link";
 
 type Order = {
-  payment_screenshot_url?: string;
   id: string;
   order_no: string;
   product: string;
@@ -14,6 +13,7 @@ type Order = {
   customer_email?: string;
   address?: string;
   txid?: string;
+  payment_screenshot_url?: string;
   status: string;
   product_type?: string;
   license_key?: string;
@@ -28,7 +28,7 @@ type Order = {
 };
 
 const statusOptions = [
-  "pending",
+  "pending_verify",
   "paid",
   "key_sent",
   "need_install_id",
@@ -112,7 +112,7 @@ export default function AdminOrdersPage() {
         installation_id: order.installation_id || "",
         confirmation_id: order.confirmation_id || "",
         account_email: order.account_email || "",
-        account_password: order.account_password || "",
+        account_password: "",
         tutorial_link: order.tutorial_link || "",
         delivery_note: order.delivery_note || "",
       }),
@@ -146,7 +146,7 @@ export default function AdminOrdersPage() {
     ) {
       return (
         <div className="bg-purple-50 border border-purple-200 text-purple-700 rounded-xl p-4 text-sm">
-          Account 产品流程：填写账号、密码和教程链接。Adobe / Autodesk 如果需要客户邮箱，可参考订单里的 customer email / notes。
+          Account 产品流程：在 Account List 里面一行填写一套账号密码，例如：email----password。
         </div>
       );
     }
@@ -190,13 +190,17 @@ export default function AdminOrdersPage() {
           <div>
             <h1 className="text-3xl font-extrabold">Order Management</h1>
             <p className="text-slate-600 mt-2">
-              按产品类型处理订单、填写密钥/账号/确认ID/教程。
+              按产品类型处理订单、填写密钥/账号/CID/教程。
             </p>
           </div>
 
           <div className="flex gap-3">
             <Link href="/admin" className="bg-white border px-5 py-3 rounded-xl">
               Product Admin
+            </Link>
+
+            <Link href="/admin/inventory" className="bg-white border px-5 py-3 rounded-xl">
+              Inventory
             </Link>
 
             <button
@@ -237,6 +241,19 @@ export default function AdminOrdersPage() {
                 <Info label="Customer Name" value={order.customer_name || "-"} />
                 <Info label="TxID" value={order.txid || "-"} wide />
                 <Info label="Customer Notes / Account Info" value={order.address || "-"} wide />
+
+                {order.payment_screenshot_url && (
+                  <div className="bg-slate-50 border rounded-xl p-4 md:col-span-2">
+                    <p className="text-sm text-slate-500 mb-2">Payment Screenshot</p>
+                    <a
+                      href={order.payment_screenshot_url}
+                      target="_blank"
+                      className="inline-block bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700"
+                    >
+                      View Screenshot
+                    </a>
+                  </div>
+                )}
               </div>
 
               <div className="grid md:grid-cols-2 gap-4 mb-5">
@@ -261,7 +278,7 @@ export default function AdminOrdersPage() {
                   <label className="block font-bold mb-2">Order Status</label>
                   <select
                     className="w-full border p-4 rounded-xl"
-                    value={order.status || "pending"}
+                    value={order.status || "pending_verify"}
                     onChange={(e) =>
                       updateLocalOrder(index, "status", e.target.value)
                     }
@@ -278,13 +295,13 @@ export default function AdminOrdersPage() {
               <div className="mb-5">{renderTypeHelp(order.product_type)}</div>
 
               <div className="grid md:grid-cols-2 gap-4">
-               <Field
-  label="License Key"
-  value={order.license_key || ""}
-  placeholder="One key per line"
-  multiline
-  onChange={(v) => updateLocalOrder(index, "license_key", v)}
-/>
+                <Field
+                  label="License Key"
+                  value={order.license_key || ""}
+                  placeholder="One key per line"
+                  multiline
+                  onChange={(v) => updateLocalOrder(index, "license_key", v)}
+                />
 
                 <Field
                   label="Error Code"
@@ -297,6 +314,7 @@ export default function AdminOrdersPage() {
                   label="Installation ID"
                   value={order.installation_id || ""}
                   placeholder="Customer Installation ID"
+                  multiline
                   onChange={(v) => updateLocalOrder(index, "installation_id", v)}
                 />
 
@@ -304,23 +322,19 @@ export default function AdminOrdersPage() {
                   label="Confirmation ID"
                   value={order.confirmation_id || ""}
                   placeholder="Confirmation ID after phone activation"
+                  multiline
                   onChange={(v) => updateLocalOrder(index, "confirmation_id", v)}
                 />
 
-                <Field
-  label="Account Email"
-  value={order.account_email || ""}
-  placeholder="One account email per line"
-  multiline
-  onChange={(v) => updateLocalOrder(index, "account_email", v)}
-/>
-                <Field
-  label="Account Password"
-  value={order.account_password || ""}
-  placeholder="One password per line"
-  multiline
-  onChange={(v) => updateLocalOrder(index, "account_password", v)}
-/>
+                <div className="md:col-span-2">
+                  <Field
+                    label="Account List"
+                    value={order.account_email || ""}
+                    placeholder={`One account per line, for example:\nm21709@365mso.com----Yc967663\nm21710@365mso.com----Sr572897`}
+                    multiline
+                    onChange={(v) => updateLocalOrder(index, "account_email", v)}
+                  />
+                </div>
 
                 <Field
                   label="Tutorial Link"
@@ -342,93 +356,63 @@ export default function AdminOrdersPage() {
                 </div>
               </div>
 
-              {order.payment_screenshot_url && (
-  <div className="bg-slate-50 border rounded-xl p-4 md:col-span-2">
-    <p className="text-sm text-slate-500 mb-2">Payment Screenshot</p>
-
-    <img
-      src={order.payment_screenshot_url}
-      alt="screenshot"
-      className="rounded-lg border max-h-[300px]"
-    />
-
-    <a
-      href={order.payment_screenshot_url}
-      target="_blank"
-      className="text-blue-600 text-sm underline mt-2 inline-block"
-    >
-      Open Full Image
-    </a>
-  </div>
-)}         
               <div className="mt-5 flex flex-wrap gap-3">
-  <button
-    onClick={() => {
-      updateLocalOrder(index, "status", "paid");
-      saveOrder({ ...order, status: "paid" });
-    }}
-    className="bg-blue-500 hover:bg-blue-400 text-white px-5 py-3 rounded-xl font-bold"
-  >
-    ✅ Mark Paid
-  </button>
+                <button
+                  onClick={() => saveOrder({ ...order, status: "paid" })}
+                  className="bg-blue-500 hover:bg-blue-400 text-white px-5 py-3 rounded-xl font-bold"
+                >
+                  ✅ Mark Paid
+                </button>
 
-  <button
-    onClick={() => {
-      updateLocalOrder(index, "status", "key_sent");
-      saveOrder({ ...order, status: "key_sent" });
-    }}
-    className="bg-emerald-500 hover:bg-emerald-400 text-black px-5 py-3 rounded-xl font-bold"
-  >
-    🔑 Key Sent
-  </button>
+                <button
+                  onClick={() => saveOrder({ ...order, status: "account_sent" })}
+                  className="bg-emerald-500 hover:bg-emerald-400 text-black px-5 py-3 rounded-xl font-bold"
+                >
+                  👤 Account Sent
+                </button>
 
-  <button
-    onClick={() => {
-      updateLocalOrder(index, "status", "need_install_id");
-      saveOrder({ ...order, status: "need_install_id" });
-    }}
-    className="bg-yellow-500 hover:bg-yellow-400 text-black px-5 py-3 rounded-xl font-bold"
-  >
-    🆔 Need Installation ID
-  </button>
+                <button
+                  onClick={() => saveOrder({ ...order, status: "key_sent" })}
+                  className="bg-emerald-500 hover:bg-emerald-400 text-black px-5 py-3 rounded-xl font-bold"
+                >
+                  🔑 Key Sent
+                </button>
 
-  <button
-    onClick={() => {
-      updateLocalOrder(index, "status", "cid_sent");
-      saveOrder({ ...order, status: "cid_sent" });
-    }}
-    className="bg-purple-500 hover:bg-purple-400 text-white px-5 py-3 rounded-xl font-bold"
-  >
-    ✅ CID Sent
-  </button>
+                <button
+                  onClick={() => saveOrder({ ...order, status: "need_install_id" })}
+                  className="bg-yellow-500 hover:bg-yellow-400 text-black px-5 py-3 rounded-xl font-bold"
+                >
+                  🆔 Need Installation ID
+                </button>
 
-  <button
-    onClick={() => {
-      updateLocalOrder(index, "status", "completed");
-      saveOrder({ ...order, status: "completed" });
-    }}
-    className="bg-black hover:bg-slate-800 text-white px-5 py-3 rounded-xl font-bold"
-  >
-    🚚 Completed
-  </button>
+                <button
+                  onClick={() => saveOrder({ ...order, status: "cid_sent" })}
+                  className="bg-purple-500 hover:bg-purple-400 text-white px-5 py-3 rounded-xl font-bold"
+                >
+                  ✅ CID Sent
+                </button>
 
-  <button
-    onClick={() => {
-      updateLocalOrder(index, "status", "problem");
-      saveOrder({ ...order, status: "problem" });
-    }}
-    className="bg-red-500 hover:bg-red-400 text-white px-5 py-3 rounded-xl font-bold"
-  >
-    ⚠️ Problem
-  </button>
+                <button
+                  onClick={() => saveOrder({ ...order, status: "completed" })}
+                  className="bg-black hover:bg-slate-800 text-white px-5 py-3 rounded-xl font-bold"
+                >
+                  🚚 Completed
+                </button>
 
-  <button
-    onClick={() => saveOrder(order)}
-    className="bg-slate-700 hover:bg-slate-600 text-white px-5 py-3 rounded-xl font-bold"
-  >
-    💾 Save Fields
-  </button>
-</div>
+                <button
+                  onClick={() => saveOrder({ ...order, status: "problem" })}
+                  className="bg-red-500 hover:bg-red-400 text-white px-5 py-3 rounded-xl font-bold"
+                >
+                  ⚠️ Problem
+                </button>
+
+                <button
+                  onClick={() => saveOrder(order)}
+                  className="bg-slate-700 hover:bg-slate-600 text-white px-5 py-3 rounded-xl font-bold"
+                >
+                  💾 Save Fields
+                </button>
+              </div>
             </div>
           ))}
 
@@ -455,7 +439,7 @@ function Info({
   return (
     <div className={`bg-slate-50 border rounded-xl p-4 ${wide ? "md:col-span-2" : ""}`}>
       <p className="text-sm text-slate-500">{label}</p>
-      <p className="font-bold break-all">{value}</p>
+      <p className="font-bold break-all whitespace-pre-wrap">{value}</p>
     </div>
   );
 }

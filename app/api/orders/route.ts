@@ -95,13 +95,13 @@ async function verifyUsdtPayment(txid: string, expectedAmount: number) {
       error: `Payment amount is too low. Paid ${paidAmount} USDT.`,
     };
   }
-*/
+
   return {
     ok: true,
     paidAmount,
   };
 }
-
+*/
 export async function POST(req: Request) {
   const ip = getIp(req);
 

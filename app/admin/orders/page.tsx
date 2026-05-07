@@ -9,6 +9,7 @@ type Order = {
   order_no: string;
   product: string;
   amount: number;
+  quantity?: number;
   customer_name?: string;
   customer_email?: string;
   address?: string;
@@ -231,6 +232,7 @@ export default function AdminOrdersPage() {
               <div className="grid md:grid-cols-2 gap-4 mb-5">
                 <Info label="Product" value={order.product} />
                 <Info label="Amount" value={`$${order.amount} USDT`} />
+                <Info label="Quantity" value={String(order.quantity || 1)} />
                 <Info label="Customer Email" value={order.customer_email || "-"} />
                 <Info label="Customer Name" value={order.customer_name || "-"} />
                 <Info label="TxID" value={order.txid || "-"} wide />

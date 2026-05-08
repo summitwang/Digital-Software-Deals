@@ -41,8 +41,10 @@ export default function HomePage() {
 
           <div className="flex gap-5 text-sm font-semibold">
             <Link href="/">Home</Link>
-            <Link href="#products">Products</Link>
-            <Link href="/track">Track Order</Link>
+<Link href="#products">Products</Link>
+<Link href="/track">Track Order</Link>
+<Link href="/account/login">Login</Link>
+<Link href="/account/register">Register</Link>
           </div>
         </div>
       </nav>

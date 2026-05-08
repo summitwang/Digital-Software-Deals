@@ -11,16 +11,17 @@ export async function GET(req: Request) {
   const { data: userData, error: userError } =
     await supabaseAdmin.auth.getUser(token);
 
-  if (userError || !userData.user?.email) {
+  if (userError || !userData.user) {
     return NextResponse.json({ error: "Invalid session" }, { status: 401 });
   }
 
-  const email = userData.user.email;
+  const userId = userData.user.id;
+  const email = userData.user.email || "";
 
   const { data, error } = await supabaseAdmin
     .from("orders")
     .select("*")
-    .eq("customer_email", email)
+    .or(`user_id.eq.${userId},customer_email.eq.${email}`)
     .order("created_at", { ascending: false });
 
   if (error) {

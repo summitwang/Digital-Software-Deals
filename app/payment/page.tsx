@@ -18,10 +18,13 @@ function PaymentContent() {
   const product = searchParams.get("product") || "Unknown Product";
   const amountFromUrl = Number(searchParams.get("amount") || "0");
   const quantityFromUrl = Number(searchParams.get("quantity") || "1");
+  const stockFromUrl = Number(searchParams.get("stock") || "999");
   const productType = searchParams.get("type") || "other";
 
+  const maxStock = stockFromUrl > 0 ? stockFromUrl : 1;
+
   const [quantity, setQuantity] = useState(
-    quantityFromUrl > 0 ? quantityFromUrl : 1
+    Math.min(quantityFromUrl > 0 ? quantityFromUrl : 1, maxStock)
   );
 
   const unitPrice =
@@ -64,6 +67,11 @@ function PaymentContent() {
   }
 
   async function submitOrder() {
+    if (quantity > maxStock) {
+      alert(`Only ${maxStock} item(s) available in stock.`);
+      return;
+    }
+
     if (!form.customer_email || !form.txid || !screenshotBase64) {
       alert("Please enter email, TxID and upload payment screenshot");
       return;
@@ -76,11 +84,7 @@ function PaymentContent() {
 
     const res = await fetch("/api/orders", {
       method: "POST",
-      headers: token
-        ? {
-            Authorization: `Bearer ${token}`,
-          }
-        : {},
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
       body: JSON.stringify({
         product,
         amount: money(totalAmount),
@@ -114,8 +118,7 @@ function PaymentContent() {
           <h1 className="text-3xl font-extrabold mb-2">USDT TRC20 Payment</h1>
 
           <p className="text-slate-600 mb-8">
-            Please send the exact amount using TRC20 network, then submit TxID
-            and payment screenshot.
+            Please send the exact amount using TRC20 network, then submit TxID and payment screenshot.
           </p>
 
           <div className="grid md:grid-cols-2 gap-4 mb-8">
@@ -132,13 +135,12 @@ function PaymentContent() {
                   -
                 </button>
 
-                <div className="text-2xl font-extrabold w-12 text-center">
-                  {quantity}
-                </div>
+                <div className="text-2xl font-extrabold w-12 text-center">{quantity}</div>
 
                 <button
-                  onClick={() => setQuantity((q) => q + 1)}
-                  className="w-11 h-11 rounded-xl border bg-white text-xl font-bold"
+                  onClick={() => setQuantity((q) => Math.min(maxStock, q + 1))}
+                  disabled={quantity >= maxStock}
+                  className="w-11 h-11 rounded-xl border bg-white text-xl font-bold disabled:bg-slate-200 disabled:text-slate-400"
                 >
                   +
                 </button>
@@ -147,6 +149,16 @@ function PaymentContent() {
               <p className="text-sm text-slate-500 mt-3">
                 Unit price: ${money(unitPrice)}
               </p>
+
+              <p className="text-sm font-bold text-emerald-600 mt-1">
+                Stock available: {maxStock}
+              </p>
+
+              {quantity >= maxStock && (
+                <p className="text-sm text-red-600 mt-1">
+                  Maximum available stock reached.
+                </p>
+              )}
             </div>
 
             <Info title="Amount" value={`$${money(totalAmount)} USDT`} green />
@@ -171,8 +183,7 @@ function PaymentContent() {
             </div>
 
             <p className="text-sm text-slate-600 mt-4">
-              ⚠️ Only send via TRC20 network. Wrong network payments may be
-              lost.
+              ⚠️ Only send via TRC20 network. Wrong network payments may be lost.
             </p>
           </div>
 
@@ -190,18 +201,14 @@ function PaymentContent() {
               className="w-full p-4 rounded-xl border border-slate-300"
               placeholder="Your Name"
               value={form.customer_name}
-              onChange={(e) =>
-                setForm({ ...form, customer_name: e.target.value })
-              }
+              onChange={(e) => setForm({ ...form, customer_name: e.target.value })}
             />
 
             <input
               className="w-full p-4 rounded-xl border border-slate-300"
               placeholder="Email Address"
               value={form.customer_email}
-              onChange={(e) =>
-                setForm({ ...form, customer_email: e.target.value })
-              }
+              onChange={(e) => setForm({ ...form, customer_email: e.target.value })}
             />
 
             <input
@@ -266,11 +273,7 @@ function Info({
       }`}
     >
       <p className="text-slate-500 text-sm mb-1">{title}</p>
-      <p
-        className={`font-bold text-lg break-all ${
-          green ? "text-emerald-600 text-2xl" : ""
-        }`}
-      >
+      <p className={`font-bold text-lg break-all ${green ? "text-emerald-600 text-2xl" : ""}`}>
         {value}
       </p>
     </div>

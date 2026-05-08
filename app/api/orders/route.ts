@@ -32,6 +32,18 @@ function isLimited(ip: string) {
   return false;
 }
 
+async function getUserIdFromRequest(req: Request) {
+  const token = req.headers.get("authorization")?.replace("Bearer ", "");
+
+  if (!token) return null;
+
+  const { data, error } = await supabaseAdmin.auth.getUser(token);
+
+  if (error || !data.user) return null;
+
+  return data.user.id;
+}
+
 async function verifyUsdtPayment(txid: string, expectedAmount: number) {
   if (!USDT_ADDRESS) {
     return { ok: false, error: "USDT wallet address is not configured." };
@@ -101,6 +113,7 @@ export async function POST(req: Request) {
     );
   }
 
+  const userId = await getUserIdFromRequest(req);
   const body = await req.json();
 
   if (body.website) {
@@ -145,10 +158,7 @@ export async function POST(req: Request) {
     .maybeSingle();
 
   if (productError || !productData) {
-    return NextResponse.json(
-      { error: "Product not found." },
-      { status: 404 }
-    );
+    return NextResponse.json({ error: "Product not found." }, { status: 404 });
   }
 
   if (Number(productData.stock || 0) < orderQuantity) {
@@ -225,6 +235,7 @@ export async function POST(req: Request) {
     .from("orders")
     .insert([
       {
+        user_id: userId,
         order_no,
         product,
         amount: expectedAmount,

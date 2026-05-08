@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { supabaseClient } from "@/lib/supabaseClient";
@@ -43,7 +43,17 @@ function PaymentContent() {
   const [screenshotBase64, setScreenshotBase64] = useState("");
   const [screenshotName, setScreenshotName] = useState("");
   const [loading, setLoading] = useState(false);
+  const [cryptoLoading, setCryptoLoading] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    supabaseClient.auth.getSession().then(({ data }) => {
+      const email = data.session?.user.email || "";
+      if (email) {
+        setForm((prev) => ({ ...prev, customer_email: email }));
+      }
+    });
+  }, []);
 
   async function copyAddress() {
     await navigator.clipboard.writeText(WALLET_ADDRESS);
@@ -66,7 +76,48 @@ function PaymentContent() {
     reader.readAsDataURL(file);
   }
 
-  async function submitOrder() {
+  async function payWithCrypto() {
+    if (!form.customer_email) {
+      alert("Please enter email address first");
+      return;
+    }
+
+    if (quantity > maxStock) {
+      alert(`Only ${maxStock} item(s) available in stock.`);
+      return;
+    }
+
+    setCryptoLoading(true);
+
+    const { data: sessionData } = await supabaseClient.auth.getSession();
+    const token = sessionData.session?.access_token;
+
+    const res = await fetch("/api/nowpayments-invoice", {
+      method: "POST",
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: JSON.stringify({
+        product,
+        amount: money(totalAmount),
+        quantity,
+        product_type: productType,
+        customer_name: form.customer_name,
+        customer_email: form.customer_email,
+        address: form.address,
+      }),
+    });
+
+    const data = await res.json();
+    setCryptoLoading(false);
+
+    if (!res.ok) {
+      alert(data.error || "Create crypto payment failed");
+      return;
+    }
+
+    window.location.href = data.invoice_url;
+  }
+
+  async function submitManualOrder() {
     if (quantity > maxStock) {
       alert(`Only ${maxStock} item(s) available in stock.`);
       return;
@@ -115,10 +166,10 @@ function PaymentContent() {
         </Link>
 
         <div className="mt-6 bg-white border rounded-3xl p-8 shadow-xl">
-          <h1 className="text-3xl font-extrabold mb-2">USDT TRC20 Payment</h1>
+          <h1 className="text-3xl font-extrabold mb-2">Crypto Payment</h1>
 
           <p className="text-slate-600 mb-8">
-            Please send the exact amount using TRC20 network, then submit TxID and payment screenshot.
+            Pay with crypto automatically, or use manual USDT TRC20 backup.
           </p>
 
           <div className="grid md:grid-cols-2 gap-4 mb-8">
@@ -135,7 +186,9 @@ function PaymentContent() {
                   -
                 </button>
 
-                <div className="text-2xl font-extrabold w-12 text-center">{quantity}</div>
+                <div className="text-2xl font-extrabold w-12 text-center">
+                  {quantity}
+                </div>
 
                 <button
                   onClick={() => setQuantity((q) => Math.min(maxStock, q + 1))}
@@ -153,43 +206,15 @@ function PaymentContent() {
               <p className="text-sm font-bold text-emerald-600 mt-1">
                 Stock available: {maxStock}
               </p>
-
-              {quantity >= maxStock && (
-                <p className="text-sm text-red-600 mt-1">
-                  Maximum available stock reached.
-                </p>
-              )}
             </div>
 
-            <Info title="Amount" value={`$${money(totalAmount)} USDT`} green />
+            <Info title="Amount" value={`$${money(totalAmount)} USD`} green />
             <Info title="Status" value="Waiting for payment" yellow />
-            <Info title="Network" value="TRC20 only" />
           </div>
 
-          <div className="bg-yellow-50 border border-yellow-300 rounded-2xl p-5 mb-8">
-            <p className="font-bold mb-3">Wallet Address</p>
+          <h2 className="text-2xl font-bold mb-4">Customer Information</h2>
 
-            <div className="flex flex-col md:flex-row gap-3 md:items-center">
-              <div className="flex-1 bg-white border rounded-xl p-4 font-mono text-sm break-all">
-                {WALLET_ADDRESS}
-              </div>
-
-              <button
-                onClick={copyAddress}
-                className="bg-black text-white px-5 py-3 rounded-xl font-bold"
-              >
-                {copied ? "Copied!" : "Copy Address"}
-              </button>
-            </div>
-
-            <p className="text-sm text-slate-600 mt-4">
-              ⚠️ Only send via TRC20 network. Wrong network payments may be lost.
-            </p>
-          </div>
-
-          <h2 className="text-2xl font-bold mb-4">Submit Payment Proof</h2>
-
-          <div className="space-y-4">
+          <div className="space-y-4 mb-8">
             <input
               className="hidden"
               placeholder="website"
@@ -201,14 +226,18 @@ function PaymentContent() {
               className="w-full p-4 rounded-xl border border-slate-300"
               placeholder="Your Name"
               value={form.customer_name}
-              onChange={(e) => setForm({ ...form, customer_name: e.target.value })}
+              onChange={(e) =>
+                setForm({ ...form, customer_name: e.target.value })
+              }
             />
 
             <input
               className="w-full p-4 rounded-xl border border-slate-300"
               placeholder="Email Address"
               value={form.customer_email}
-              onChange={(e) => setForm({ ...form, customer_email: e.target.value })}
+              onChange={(e) =>
+                setForm({ ...form, customer_email: e.target.value })
+              }
             />
 
             <input
@@ -218,36 +247,72 @@ function PaymentContent() {
               onChange={(e) => setForm({ ...form, address: e.target.value })}
             />
 
-            <input
-              className="w-full p-4 rounded-xl border border-slate-300"
-              placeholder="Transaction ID (TxID)"
-              value={form.txid}
-              onChange={(e) => setForm({ ...form, txid: e.target.value })}
-            />
+            <button
+              onClick={payWithCrypto}
+              disabled={cryptoLoading}
+              className="w-full bg-black hover:bg-slate-800 disabled:bg-slate-400 text-white font-extrabold py-4 rounded-xl transition"
+            >
+              {cryptoLoading ? "Creating payment..." : "Pay With Crypto"}
+            </button>
+          </div>
 
-            <div className="bg-slate-50 border rounded-xl p-4">
-              <p className="font-bold mb-2">Upload Payment Screenshot *</p>
+          <div className="border-t pt-8">
+            <h2 className="text-xl font-bold mb-4">Manual USDT TRC20 Backup</h2>
 
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(e) => handleScreenshot(e.target.files?.[0])}
-              />
+            <div className="bg-yellow-50 border border-yellow-300 rounded-2xl p-5 mb-6">
+              <p className="font-bold mb-3">Wallet Address</p>
 
-              {screenshotName && (
-                <p className="text-sm text-emerald-600 mt-2">
-                  Uploaded: {screenshotName}
-                </p>
-              )}
+              <div className="flex flex-col md:flex-row gap-3 md:items-center">
+                <div className="flex-1 bg-white border rounded-xl p-4 font-mono text-sm break-all">
+                  {WALLET_ADDRESS}
+                </div>
+
+                <button
+                  onClick={copyAddress}
+                  className="bg-black text-white px-5 py-3 rounded-xl font-bold"
+                >
+                  {copied ? "Copied!" : "Copy Address"}
+                </button>
+              </div>
+
+              <p className="text-sm text-slate-600 mt-4">
+                ⚠️ Only send via TRC20 network. Wrong network payments may be
+                lost.
+              </p>
             </div>
 
-            <button
-              onClick={submitOrder}
-              disabled={loading}
-              className="w-full bg-emerald-500 hover:bg-emerald-400 disabled:bg-slate-400 text-black font-extrabold py-4 rounded-xl transition"
-            >
-              {loading ? "Submitting..." : "Submit Payment"}
-            </button>
+            <div className="space-y-4">
+              <input
+                className="w-full p-4 rounded-xl border border-slate-300"
+                placeholder="Transaction ID (TxID)"
+                value={form.txid}
+                onChange={(e) => setForm({ ...form, txid: e.target.value })}
+              />
+
+              <div className="bg-slate-50 border rounded-xl p-4">
+                <p className="font-bold mb-2">Upload Payment Screenshot *</p>
+
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => handleScreenshot(e.target.files?.[0])}
+                />
+
+                {screenshotName && (
+                  <p className="text-sm text-emerald-600 mt-2">
+                    Uploaded: {screenshotName}
+                  </p>
+                )}
+              </div>
+
+              <button
+                onClick={submitManualOrder}
+                disabled={loading}
+                className="w-full bg-emerald-500 hover:bg-emerald-400 disabled:bg-slate-400 text-black font-extrabold py-4 rounded-xl transition"
+              >
+                {loading ? "Submitting..." : "Submit Manual Payment"}
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -273,7 +338,11 @@ function Info({
       }`}
     >
       <p className="text-slate-500 text-sm mb-1">{title}</p>
-      <p className={`font-bold text-lg break-all ${green ? "text-emerald-600 text-2xl" : ""}`}>
+      <p
+        className={`font-bold text-lg break-all ${
+          green ? "text-emerald-600 text-2xl" : ""
+        }`}
+      >
         {value}
       </p>
     </div>

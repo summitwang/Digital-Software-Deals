@@ -3,6 +3,7 @@
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { supabaseClient } from "@/lib/supabaseClient";
 
 const WALLET_ADDRESS = "TTmc9PhAioNeRVdh5Nb9TZZWJC6dqDZH4o";
 
@@ -70,8 +71,16 @@ function PaymentContent() {
 
     setLoading(true);
 
+    const { data: sessionData } = await supabaseClient.auth.getSession();
+    const token = sessionData.session?.access_token;
+
     const res = await fetch("/api/orders", {
       method: "POST",
+      headers: token
+        ? {
+            Authorization: `Bearer ${token}`,
+          }
+        : {},
       body: JSON.stringify({
         product,
         amount: money(totalAmount),

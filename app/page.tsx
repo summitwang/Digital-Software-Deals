@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { supabaseClient } from "@/lib/supabaseClient";
 
 type Product = {
   id: string;
@@ -25,26 +26,61 @@ function getDiscount(original?: number, promo?: number, price?: number) {
 
 export default function HomePage() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [userEmail, setUserEmail] = useState("");
 
   useEffect(() => {
     fetch("/api/products")
       .then((res) => res.json())
       .then((data) => setProducts(data.products || []))
       .catch(() => setProducts([]));
+
+    supabaseClient.auth.getSession().then(({ data }) => {
+      setUserEmail(data.session?.user.email || "");
+    });
+
+    const { data: listener } = supabaseClient.auth.onAuthStateChange(
+      (_event, session) => {
+        setUserEmail(session?.user.email || "");
+      }
+    );
+
+    return () => {
+      listener.subscription.unsubscribe();
+    };
   }, []);
+
+  async function logout() {
+    await supabaseClient.auth.signOut();
+    setUserEmail("");
+    window.location.href = "/";
+  }
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
       <nav className="sticky top-0 z-50 bg-white/90 backdrop-blur border-b">
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="text-xl font-extrabold">Digital Software Deals</div>
+          <Link href="/" className="text-2xl font-extrabold">
+            SoftDealsHub
+          </Link>
 
-          <div className="flex gap-5 text-sm font-semibold">
+          <div className="flex gap-5 text-sm font-semibold items-center">
             <Link href="/">Home</Link>
-<Link href="#products">Products</Link>
-<Link href="/track">Track Order</Link>
-<Link href="/account/login">Login</Link>
-<Link href="/account/register">Register</Link>
+            <Link href="#products">Products</Link>
+            <Link href="/track">Track Order</Link>
+
+            {userEmail ? (
+              <>
+                <Link href="/account">My Account</Link>
+                <button onClick={logout} className="font-semibold">
+                  Logout
+                </button>
+              </>
+            ) : (
+              <>
+                <Link href="/account/login">Login</Link>
+                <Link href="/account/register">Register</Link>
+              </>
+            )}
           </div>
         </div>
       </nav>

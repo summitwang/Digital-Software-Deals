@@ -191,7 +191,7 @@ export default function HomePage() {
                       <img
                         src={product.image_url}
                         alt={product.title}
-                        className="w-full h-full object-cover"
+                        className="w-full h-52 object-cover"
                       />
                     ) : (
                       <div className="text-center px-4">
@@ -214,11 +214,15 @@ export default function HomePage() {
                       </span>
                     </div>
 
-                    <h3 className="text-xl font-bold mb-2">{product.title}</h3>
+                    <h3 className="text-lg font-bold mb-2 line-clamp-2 min-h-[56px]">
+  {product.title}
+</h3>
 
-                    <p className="text-slate-600 text-sm mb-5 line-clamp-3 min-h-[72px]">
-  {product.description}
-</p>
+                    <div className="space-y-1 text-sm text-slate-600 mb-4 min-h-[72px]">
+  <p>✔ Instant Delivery</p>
+  <p>✔ Official Access</p>
+  <p>✔ Multi-device Support</p>
+</div>
 
                     <div className="mb-5">
                       <p className="text-sm text-slate-400">Special Price</p>

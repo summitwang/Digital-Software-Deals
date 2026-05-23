@@ -331,8 +331,7 @@ export default function HomePage() {
   </a>
 
 </div>
-        💬
-      </a>
+
     </main>
   );
 }

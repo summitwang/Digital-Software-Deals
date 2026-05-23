@@ -25,7 +25,4 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-#tawkchat-container,
-iframe[title="chat widget"] {
-  display: none !important;
-}
+

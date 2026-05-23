@@ -216,9 +216,9 @@ export default function HomePage() {
 
                     <h3 className="text-xl font-bold mb-2">{product.title}</h3>
 
-                    <p className="text-slate-600 text-sm mb-5 min-h-[44px]">
-                      {product.description}
-                    </p>
+                    <p className="text-slate-600 text-sm mb-5 line-clamp-3 min-h-[72px]">
+  {product.description}
+</p>
 
                     <div className="mb-5">
                       <p className="text-sm text-slate-400">Special Price</p>

@@ -310,7 +310,7 @@ function FloatingSupport() {
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="fixed right-6 bottom-6 z-50">
+    <div className="fixed right-6 bottom-6 z-[999999]">
       {open && (
         <div className="mb-3 w-64 rounded-2xl bg-white border shadow-2xl p-4 space-y-3">
           <p className="font-extrabold text-slate-900">

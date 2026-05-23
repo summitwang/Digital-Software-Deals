@@ -354,10 +354,12 @@ function FloatingSupport() {
 
       <button
         type="button"
-        onClick={() => {
+       onClick={() => {
   const tawk = (window as any).Tawk_API;
   if (tawk) {
+    tawk.showWidget();
     tawk.maximize();
+    setOpen(false);
   } else {
     alert("Live chat is loading. Please try again in a few seconds.");
   }

@@ -331,7 +331,63 @@ export default function HomePage() {
   </a>
 
 </div>
-
+<FloatingSupport />
     </main>
+  );
+}
+function FloatingSupport() {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="fixed right-6 bottom-6 z-50">
+      {open && (
+        <div className="mb-3 w-64 rounded-2xl bg-white border shadow-2xl p-4 space-y-3">
+          <p className="font-extrabold text-slate-900">
+            Contact Support
+          </p>
+
+          <a
+            href="https://wa.me/60168292446?text=Hi%20I%20need%20help%20with%20SoftDealsHub"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block bg-green-500 text-white rounded-xl px-4 py-3 font-bold"
+          >
+            💬 WhatsApp Support
+          </a>
+
+          <a
+            href="https://t.me/SoftHubSolutions"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block bg-blue-500 text-white rounded-xl px-4 py-3 font-bold"
+          >
+            ✈️ Telegram Support
+          </a>
+
+          <a
+            href="mailto:softcat918@gmail.com"
+            className="block bg-black text-white rounded-xl px-4 py-3 font-bold"
+          >
+            📧 Email Support
+          </a>
+
+          <button
+            type="button"
+            className="w-full bg-slate-100 text-slate-700 rounded-xl px-4 py-3 font-bold text-left"
+            onClick={() => alert("Live chat coming soon")}
+          >
+            🟢 Live Chat
+          </button>
+        </div>
+      )}
+
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="w-16 h-16 rounded-full bg-emerald-500 text-white shadow-2xl flex items-center justify-center text-3xl hover:scale-110 transition"
+      >
+        {open ? "×" : "💬"}
+      </button>
+    </div>
   );
 }

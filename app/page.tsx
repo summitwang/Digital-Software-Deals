@@ -345,7 +345,17 @@ function FloatingSupport() {
           <button
             type="button"
             className="w-full bg-slate-100 text-slate-700 rounded-xl px-4 py-3 font-bold text-left"
-            onClick={() => alert("Live chat coming soon")}
+            onClick={() => {
+  const tawk = (window as any).Tawk_API;
+
+  if (tawk) {
+    tawk.showWidget();
+    tawk.maximize();
+    setOpen(false);
+  } else {
+    alert("Live chat is loading. Please try again in a few seconds.");
+  }
+}}
           >
             🟢 Live Chat
           </button>
@@ -354,25 +364,7 @@ function FloatingSupport() {
 
       <button
         type="button"
-       onClick={() => {
-  const tawk = (window as any).Tawk_API;
-
-  if (tawk) {
-    const iframe = document.querySelector(
-      'iframe[title="chat widget"]'
-    ) as HTMLIFrameElement | null;
-
-    if (iframe) {
-      iframe.style.display = "block";
-    }
-
-    tawk.showWidget();
-    tawk.maximize();
-    setOpen(false);
-  } else {
-    alert("Live chat is loading. Please try again in a few seconds.");
-  }
-}}
+       onClick={() => setOpen(!open)}
         className="w-16 h-16 rounded-full bg-emerald-500 text-white shadow-2xl flex items-center justify-center text-3xl hover:scale-110 transition"
       >
         {open ? "×" : "💬"}

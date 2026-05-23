@@ -191,7 +191,7 @@ export default function HomePage() {
                       <img
                         src={product.image_url}
                         alt={product.title}
-                        className="w-full h-52 object-cover"
+                        className="w-full h-44 object-contain bg-white"
                       />
                     ) : (
                       <div className="text-center px-4">
@@ -214,21 +214,20 @@ export default function HomePage() {
                       </span>
                     </div>
 
-                    <h3 className="text-lg font-bold mb-2 line-clamp-2 min-h-[56px]">
+                    <h3 className="text-base font-extrabold mb-3 line-clamp-2 min-h-[48px]">
   {product.title}
 </h3>
 
-                    <div className="space-y-1 text-sm text-slate-600 mb-4 min-h-[72px]">
+                    <div className="space-y-1 text-sm text-slate-600 mb-3 min-h-[48px]">
   <p>✔ Instant Delivery</p>
   <p>✔ Official Access</p>
-  <p>✔ Multi-device Support</p>
 </div>
 
                     <div className="mb-5">
                       <p className="text-sm text-slate-400">Special Price</p>
 
                       <div className="flex items-end gap-3">
-                        <p className="text-3xl font-extrabold text-green-600">
+                        <p className="text-2xl font-extrabold text-green-600">
                           ${finalPrice}
                         </p>
 
@@ -255,7 +254,7 @@ export default function HomePage() {
 
                     <Link
                       href={`/product/${product.id}`}
-                      className="block text-center bg-white border border-slate-300 text-slate-900 py-3 rounded-xl font-bold hover:bg-slate-50 mb-3"
+                      className="block text-center bg-white border border-slate-300 text-slate-900 py-2.5 rounded-xl font-bold hover:bg-slate-50 mb-3"
                     >
                       View Details
                     </Link>
@@ -263,7 +262,7 @@ export default function HomePage() {
                     {soldOut ? (
                       <button
                         disabled
-                        className="block w-full text-center bg-slate-300 text-slate-500 py-4 rounded-xl font-bold cursor-not-allowed"
+                        className="block w-full text-center bg-slate-300 text-slate-500 py-2.5 rounded-xl font-bold cursor-not-allowed"
                       >
                         Sold Out
                       </button>

@@ -310,7 +310,7 @@ function FloatingSupport() {
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="fixed right-6 bottom-6 z-[999999]">
+    <div className="fixed right-6 bottom-6 z-[2147483647]">
       {open && (
         <div className="mb-3 w-64 rounded-2xl bg-white border shadow-2xl p-4 space-y-3">
           <p className="font-extrabold text-slate-900">
@@ -364,7 +364,16 @@ function FloatingSupport() {
 
       <button
         type="button"
-       onClick={() => setOpen(!open)}
+       onClick={() => {
+  const tawk = (window as any).Tawk_API;
+
+  if (tawk) {
+    tawk.minimize();
+    tawk.hideWidget();
+  }
+
+  setOpen(!open);
+}}
         className="w-16 h-16 rounded-full bg-emerald-500 text-white shadow-2xl flex items-center justify-center text-3xl hover:scale-110 transition"
       >
         {open ? "×" : "💬"}

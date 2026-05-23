@@ -191,7 +191,7 @@ export default function HomePage() {
                       <img
                         src={product.image_url}
                         alt={product.title}
-                        className="w-full h-44 object-contain bg-white"
+                        className="w-full h-60 object-contain bg-white"
                       />
                     ) : (
                       <div className="text-center px-4">
@@ -203,7 +203,7 @@ export default function HomePage() {
                     )}
                   </div>
 
-                  <div className="p-6">
+                  <div className="p-5">
                     <div className="flex justify-between items-center mb-3">
                       <span className="bg-red-100 text-red-600 px-3 py-1 rounded-full text-sm font-bold">
                         {product.tag || "Best Seller"}
@@ -214,14 +214,10 @@ export default function HomePage() {
                       </span>
                     </div>
 
-                    <h3 className="text-base font-extrabold mb-3 line-clamp-2 min-h-[48px]">
-  {product.title}
-</h3>
-
-                    <div className="space-y-1 text-sm text-slate-600 mb-3 min-h-[48px]">
-  <p>✔ Instant Delivery</p>
-  <p>✔ Official Access</p>
-</div>
+                    <h3 className="text-base font-extrabold mb-3 line-clamp-2 min-h-[44px]">
+                         {product.title}
+                      </h3>
+                
 
                     <div className="mb-5">
                       <p className="text-sm text-slate-400">Special Price</p>

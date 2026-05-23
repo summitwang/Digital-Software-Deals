@@ -56,14 +56,7 @@ export default function RootLayout({
 
     Tawk_API.onLoad = function(){
       Tawk_API.hideWidget();
-    };
-
-    Tawk_API.onChatMinimized = function(){
-      Tawk_API.hideWidget();
-    };
-
-    Tawk_API.onChatEnded = function(){
-      Tawk_API.hideWidget();
+      Tawk_API.minimize();
     };
 
     (function(){

@@ -356,7 +356,16 @@ function FloatingSupport() {
         type="button"
        onClick={() => {
   const tawk = (window as any).Tawk_API;
+
   if (tawk) {
+    const iframe = document.querySelector(
+      'iframe[title="chat widget"]'
+    ) as HTMLIFrameElement | null;
+
+    if (iframe) {
+      iframe.style.display = "block";
+    }
+
     tawk.showWidget();
     tawk.maximize();
     setOpen(false);

@@ -354,7 +354,11 @@ function FloatingSupport() {
 
       <button
         type="button"
-        onClick={() => setOpen(!open)}
+        onClick={() => {
+  if (window.Tawk_API) {
+    window.Tawk_API.maximize();
+  }
+}}
         className="w-16 h-16 rounded-full bg-emerald-500 text-white shadow-2xl flex items-center justify-center text-3xl hover:scale-110 transition"
       >
         {open ? "×" : "💬"}

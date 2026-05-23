@@ -355,8 +355,9 @@ function FloatingSupport() {
       <button
         type="button"
         onClick={() => {
-  if (window.Tawk_API) {
-    window.Tawk_API.maximize();
+  const tawk = (window as any).Tawk_API;
+  if (tawk) {
+    tawk.maximize();
   }
 }}
         className="w-16 h-16 rounded-full bg-emerald-500 text-white shadow-2xl flex items-center justify-center text-3xl hover:scale-110 transition"

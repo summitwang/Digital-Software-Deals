@@ -301,36 +301,7 @@ export default function HomePage() {
           </Link>
         </div>
       </section>
-
-      <div className="fixed right-6 bottom-6 z-50 flex flex-col gap-3">
-
-  {/* WhatsApp */}
-  <a
-    href="https://wa.me/60168292446?text=Hi%20I%20need%20help%20with%20SoftDealsHub"
-    target="_blank"
-    className="bg-green-500 text-white w-14 h-14 rounded-full flex items-center justify-center text-2xl shadow-xl hover:scale-110 transition"
-  >
-    💬
-  </a>
-
-  {/* Telegram */}
-  <a
-    href="https://t.me/SoftHubSolutions"
-    target="_blank"
-    className="bg-blue-500 text-white w-14 h-14 rounded-full flex items-center justify-center text-2xl shadow-xl hover:scale-110 transition"
-  >
-    ✈️
-  </a>
-
-  {/* Email */}
-  <a
-    href="mailto:softcat918@gmail.com"
-    className="bg-black text-white w-14 h-14 rounded-full flex items-center justify-center text-2xl shadow-xl hover:scale-110 transition"
-  >
-    📧
-  </a>
-
-</div>
+      
 <FloatingSupport />
     </main>
   );

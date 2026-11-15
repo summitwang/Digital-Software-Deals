@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { checkoutQuantity, checkoutTotal } from "@/lib/checkoutPricing";
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
@@ -177,7 +178,6 @@ export async function POST(req: Request) {
   } catch (error) {
     return NextResponse.json({ error: (error as Error).message }, { status: 400 });
   }
-  const product_type = productData.product_type;
 
   const { data: existingTx } = await supabaseAdmin
     .from("orders")
@@ -198,7 +198,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: verifyResult.error }, { status: 400 });
   }
 
-  const order_no = "ORD-" + Date.now();
+  const order_no = "ORD-" + randomUUID();
   let payment_screenshot_url = "";
 
   try {
@@ -231,48 +231,16 @@ export async function POST(req: Request) {
     );
   }
 
-  const newStock = Number(productData.stock || 0) - orderQuantity;
-
-  const { error: stockError } = await supabaseAdmin
-    .from("products")
-    .update({ stock: newStock })
-    .eq("id", productData.id);
-
-  if (stockError) {
-    return NextResponse.json({ error: stockError.message }, { status: 500 });
-  }
-
-  const { data, error } = await supabaseAdmin
-    .from("orders")
-    .insert([
-      {
-        user_id: userId,
-        order_no,
-        product,
-        amount: expectedAmount,
-        quantity: orderQuantity,
-        product_type: product_type || "",
-        customer_name,
-        customer_email,
-        address,
-        txid,
-        payment_screenshot_url,
-        status: "paid",
-        stock_deducted: true,
-        delivery_note: `USDT payment verified automatically. Paid amount: ${verifyResult.paidAmount} USDT`,
-      },
-    ])
-    .select()
-    .single();
-
+  const { data, error } = await supabaseAdmin.rpc("create_verified_order_v1", {
+    p_order: {
+      user_id: userId, order_no, product, amount: expectedAmount,
+      quantity: orderQuantity, customer_name, customer_email, address, txid,
+      payment_screenshot_url,
+    },
+  });
   if (error) {
-    await supabaseAdmin
-      .from("products")
-      .update({ stock: Number(productData.stock || 0) })
-      .eq("id", productData.id);
-
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    // 不恢复旧库存快照：事务失败已自动回滚，覆盖旧值会破坏并发订单。
+    return NextResponse.json({ error: "Order could not be saved. Contact support with your TxID before resubmitting payment." }, { status: 409 });
   }
-
   return NextResponse.json({ success: true, order: data });
 }

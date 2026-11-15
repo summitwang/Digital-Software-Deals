@@ -1,46 +1,15 @@
 import { NextResponse } from "next/server";
-import crypto from "crypto";
+import { verifyPaymentSignature } from "@/lib/paymentSignature";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 export const runtime = "nodejs";
 
-function sortObject(obj: any): any {
-  if (obj === null || typeof obj !== "object" || Array.isArray(obj)) return obj;
-
-  return Object.keys(obj)
-    .sort()
-    .reduce((result: any, key) => {
-      result[key] = sortObject(obj[key]);
-      return result;
-    }, {});
-}
-
-function verifySignature(rawBody: string, signature: string | null) {
-  const secret = process.env.NOWPAYMENTS_IPN_SECRET;
-
-  if (!secret) return true;
-  if (!signature) return false;
-
-  try {
-    const body = JSON.parse(rawBody);
-    const sortedBody = JSON.stringify(sortObject(body));
-
-    const hmac = crypto
-      .createHmac("sha512", secret)
-      .update(sortedBody)
-      .digest("hex");
-
-    return hmac === signature;
-  } catch {
-    return false;
-  }
-}
-
 export async function POST(req: Request) {
+  if (!process.env.NOWPAYMENTS_IPN_SECRET) return NextResponse.json({ error: "Payment callback is not configured" }, { status: 503 });
   const rawBody = await req.text();
   const signature = req.headers.get("x-nowpayments-sig");
 
-  if (!verifySignature(rawBody, signature)) {
+  if (!verifyPaymentSignature(rawBody, signature, process.env.NOWPAYMENTS_IPN_SECRET)) {
     return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
   }
 

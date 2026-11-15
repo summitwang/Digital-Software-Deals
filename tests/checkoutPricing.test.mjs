@@ -1,0 +1,12 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { checkoutQuantity, checkoutTotal } from '../lib/checkoutPricing.ts';
+const product = { price: '12.50', promo_price: '9.99', stock: 5 };
+test('uses catalog promotion and exact integer-cent multiplication', () => assert.equal(checkoutTotal(product, 3, '29.97'), 29.97));
+test('rejects browser price tampering', () => assert.throws(() => checkoutTotal(product, 1, '0.01'), /Price changed/));
+test('rejects stale checkout amount', () => assert.throws(() => checkoutTotal(product, 2, '19.00'), /Price changed/));
+test('rejects unsafe quantities', () => { for (const value of [0, -1, 1.5, '2', null, true, 1001, NaN, Infinity]) assert.throws(() => checkoutQuantity(value)); });
+test('defaults omitted quantity to one', () => assert.equal(checkoutQuantity(undefined), 1));
+test('rejects unavailable stock', () => assert.throws(() => checkoutTotal(product, 6, '59.94'), /stock/));
+test('supports legacy unset promotions', () => { for (const promo_price of [null, undefined, '', 0, '0', '0.00']) assert.equal(checkoutTotal({...product, promo_price}, 2, 25), 25); });
+test('rejects invalid catalog or submitted prices', () => { for (const value of [null, true, '', -1, '1.234', 'NaN', 'Infinity']) { assert.throws(() => checkoutTotal({...product, promo_price: value, price: value}, 1, 1)); assert.throws(() => checkoutTotal(product, 1, value)); } });

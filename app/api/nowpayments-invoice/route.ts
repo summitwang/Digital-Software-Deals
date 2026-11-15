@@ -1,3 +1,4 @@
+import { checkoutQuantity, checkoutTotal } from "@/lib/checkoutPricing";
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
@@ -25,22 +26,31 @@ export async function POST(req: Request) {
   }
 
   const userId = await getUserIdFromRequest(req);
-  const body = await req.json();
+  let body;
+  try {
+    body = await req.json();
+    if (!body || typeof body !== "object" || Array.isArray(body)) throw new Error();
+  } catch {
+    return NextResponse.json({ error: "Invalid request body." }, { status: 400 });
+  }
 
   const {
     product,
     amount,
     quantity,
-    product_type,
     customer_name,
     customer_email,
     address,
   } = body;
 
-  const orderQuantity = Number(quantity || 1);
-  const expectedAmount = Number(amount);
+  let orderQuantity: number;
+  try {
+    orderQuantity = checkoutQuantity(quantity);
+  } catch (error) {
+    return NextResponse.json({ error: (error as Error).message }, { status: 400 });
+  }
 
-  if (!product || !expectedAmount || !customer_email) {
+  if (!product || !amount || !customer_email) {
     return NextResponse.json(
       { error: "Product, amount and email are required." },
       { status: 400 }
@@ -49,7 +59,7 @@ export async function POST(req: Request) {
 
   const { data: productData, error: productError } = await supabaseAdmin
     .from("products")
-    .select("id, stock")
+    .select("id, title, stock, price, promo_price, product_type")
     .eq("title", product)
     .eq("is_active", true)
     .maybeSingle();
@@ -58,12 +68,13 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Product not found." }, { status: 404 });
   }
 
-  if (Number(productData.stock || 0) < orderQuantity) {
-    return NextResponse.json(
-      { error: "Not enough stock available." },
-      { status: 400 }
-    );
+  let expectedAmount: number;
+  try {
+    expectedAmount = checkoutTotal(productData, orderQuantity, amount);
+  } catch (error) {
+    return NextResponse.json({ error: (error as Error).message }, { status: 400 });
   }
+  const product_type = productData.product_type;
 
   const order_no = "ORD-" + Date.now();
 

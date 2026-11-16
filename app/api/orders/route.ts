@@ -129,7 +129,7 @@ export async function POST(req: Request) {
   }
 
   const {
-    product,
+    product_id,
     amount,
     quantity,
     customer_name,
@@ -147,7 +147,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: (error as Error).message }, { status: 400 });
   }
 
-  if (!product || !amount || !customer_email || !txid || !screenshot_base64) {
+  if ((typeof product_id !== "string" || !product_id || product_id.length > 128) || !amount || !customer_email || !txid || !screenshot_base64) {
     return NextResponse.json(
       { error: "Email, TxID and payment screenshot are required." },
       { status: 400 }
@@ -164,7 +164,7 @@ export async function POST(req: Request) {
   const { data: productData, error: productError } = await supabaseAdmin
     .from("products")
     .select("id, title, stock, price, promo_price, product_type")
-    .eq("title", product)
+    .eq("id", product_id)
     .eq("is_active", true)
     .maybeSingle();
 
@@ -172,6 +172,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Product not found." }, { status: 404 });
   }
 
+  const product = productData.title;
   let expectedAmount: number;
   try {
     expectedAmount = checkoutTotal(productData, orderQuantity, amount);
@@ -233,7 +234,7 @@ export async function POST(req: Request) {
 
   const { data, error } = await supabaseAdmin.rpc("create_verified_order_v1", {
     p_order: {
-      user_id: userId, order_no, product, amount: expectedAmount,
+      user_id: userId, order_no, product, product_ref: String(productData.id), amount: expectedAmount,
       quantity: orderQuantity, customer_name, customer_email, address, txid,
       payment_screenshot_url,
     },

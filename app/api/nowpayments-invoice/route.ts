@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { checkoutQuantity, checkoutTotal } from "@/lib/checkoutPricing";
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
@@ -35,7 +36,7 @@ export async function POST(req: Request) {
   }
 
   const {
-    product,
+    product_id,
     amount,
     quantity,
     customer_name,
@@ -50,7 +51,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: (error as Error).message }, { status: 400 });
   }
 
-  if (!product || !amount || !customer_email) {
+  if ((typeof product_id !== "string" || !product_id || product_id.length > 128) || !amount || !customer_email) {
     return NextResponse.json(
       { error: "Product, amount and email are required." },
       { status: 400 }
@@ -60,7 +61,7 @@ export async function POST(req: Request) {
   const { data: productData, error: productError } = await supabaseAdmin
     .from("products")
     .select("id, title, stock, price, promo_price, product_type")
-    .eq("title", product)
+    .eq("id", product_id)
     .eq("is_active", true)
     .maybeSingle();
 
@@ -68,6 +69,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Product not found." }, { status: 404 });
   }
 
+  const product = productData.title;
   let expectedAmount: number;
   try {
     expectedAmount = checkoutTotal(productData, orderQuantity, amount);
@@ -76,7 +78,7 @@ export async function POST(req: Request) {
   }
   const product_type = productData.product_type;
 
-  const order_no = "ORD-" + Date.now();
+  const order_no = "ORD-" + randomUUID();
 
   const invoiceRes = await fetch("https://api.nowpayments.io/v1/invoice", {
     method: "POST",
@@ -91,11 +93,7 @@ export async function POST(req: Request) {
       order_description: `${product} x ${orderQuantity}`,
       ipn_callback_url: `${siteUrl}/api/nowpayments-webhook`,
       success_url: `${siteUrl}/payment/success?orderId=${order_no}`,
-      cancel_url: `${siteUrl}/payment?product=${encodeURIComponent(
-        product
-      )}&amount=${encodeURIComponent(String(expectedAmount))}&quantity=${orderQuantity}&type=${encodeURIComponent(
-        product_type || "other"
-      )}`,
+      cancel_url: `${siteUrl}/payment?productId=${encodeURIComponent(String(productData.id))}`,
     }),
   });
 
@@ -115,6 +113,7 @@ export async function POST(req: Request) {
         user_id: userId,
         order_no,
         product,
+        product_ref: String(productData.id),
         amount: expectedAmount,
         quantity: orderQuantity,
         product_type: product_type || "",

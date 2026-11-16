@@ -1,5 +1,7 @@
 -- 先在隔离环境核对现有表结构及重复订单/TxID，再执行。整个迁移失败时回滚。
 begin;
+-- 文本兼容现有商品 ID 类型；新订单显式保存，历史订单不自动猜测归属。
+alter table public.orders add column if not exists product_ref text;
 create unique index if not exists orders_order_no_unique_v1 on public.orders(order_no);
 create unique index if not exists orders_txid_unique_v1 on public.orders(lower(txid)) where txid is not null and txid <> '';
 create table if not exists public.payment_events_v1 (
@@ -35,7 +37,11 @@ begin
   if o.payment_status='refunded' or (prior_rank>next_rank and p_status<>'refunded') then return jsonb_build_object('ignored',true); end if;
   if p_status in ('confirmed','finished') and not coalesce(o.stock_deducted,false) then
     if o.quantity is null or o.quantity<1 or o.quantity<>trunc(o.quantity) then raise exception 'Invalid order quantity'; end if;
-    select * into strict p from public.products where title=o.product and is_active=true;
+    if o.product_ref is not null then
+      select * into strict p from public.products where id::text=o.product_ref;
+    else
+      select * into strict p from public.products where title=o.product;
+    end if;
     update public.products set stock=stock-o.quantity where id=p.id and stock>=o.quantity;
     get diagnostics n = row_count;
     if n<>1 then
@@ -60,18 +66,40 @@ declare x public.orders%rowtype; p public.products%rowtype; result public.orders
 begin
   x := jsonb_populate_record(null::public.orders,p_order);
   if x.quantity is null or x.quantity<1 or x.quantity>1000 or x.quantity<>trunc(x.quantity) or coalesce(x.txid,'')='' then raise exception 'Invalid order'; end if;
-  select * into strict p from public.products where title=x.product and is_active=true for update;
+  if coalesce(x.product_ref,'')='' then raise exception 'Product ID required'; end if;
+  select * into strict p from public.products where id::text=x.product_ref and is_active=true for update;
   unit_price := coalesce(nullif(p.promo_price,0),p.price);
   if unit_price<=0 or x.amount is distinct from unit_price*x.quantity then raise exception 'Price changed'; end if;
   update public.products set stock=stock-x.quantity where id=p.id and stock>=x.quantity;
   get diagnostics n = row_count;
   if n<>1 then raise exception 'Not enough stock'; end if;
-  insert into public.orders(user_id,order_no,product,amount,quantity,product_type,customer_name,customer_email,address,txid,payment_screenshot_url,status,stock_deducted,delivery_note)
-    values(x.user_id,x.order_no,p.title,x.amount,x.quantity,p.product_type,x.customer_name,x.customer_email,x.address,lower(x.txid),x.payment_screenshot_url,'pending_verify',true,'Payment evidence received. Awaiting manual review.') returning * into result;
+  insert into public.orders(user_id,order_no,product,product_ref,amount,quantity,product_type,customer_name,customer_email,address,txid,payment_screenshot_url,status,stock_deducted,delivery_note)
+    values(x.user_id,x.order_no,p.title,p.id::text,x.amount,x.quantity,p.product_type,x.customer_name,x.customer_email,x.address,lower(x.txid),x.payment_screenshot_url,'pending_verify',true,'Payment evidence received. Awaiting manual review.') returning * into result;
   return to_jsonb(result);
 end $$;
 revoke all on function public.apply_payment_v1(text,text,text,text,numeric,text) from public,anon,authenticated;
 revoke all on function public.create_verified_order_v1(jsonb) from public,anon,authenticated;
 grant execute on function public.apply_payment_v1(text,text,text,text,numeric,text) to service_role;
 grant execute on function public.create_verified_order_v1(jsonb) to service_role;
+-- 后台只允许在库存已经落实后进入审核通过/交付状态；不在管理页重复扣库存。
+create or replace function public.update_order_delivery_v1(p_order text,p_patch jsonb)
+returns jsonb language plpgsql security definer set search_path = public, pg_temp as $$
+declare o public.orders%rowtype; x public.orders%rowtype;
+begin
+  select * into strict o from public.orders where order_no=p_order for update;
+  if p_patch->>'status' is null or p_patch->>'status' not in ('pending_verify','paid','key_sent','need_install_id','cid_sent','account_sent','completed','problem') then raise exception 'Invalid order status'; end if;
+  if p_patch->>'status' in ('paid','key_sent','need_install_id','cid_sent','account_sent','completed') and
+    (not coalesce(o.stock_deducted,false) or coalesce(o.payment_status,'') in ('refunded','failed','expired')) then
+    raise exception 'Resolve payment and inventory before delivery';
+  end if;
+  if o.status in ('key_sent','cid_sent','account_sent','completed') and p_patch->>'status' in ('pending_verify','paid') then raise exception 'Delivered order cannot return to payment review'; end if;
+  x := jsonb_populate_record(o,p_patch);
+  update public.orders set status=x.status,product_type=x.product_type,license_key=x.license_key,
+    error_code=x.error_code,installation_id=x.installation_id,confirmation_id=x.confirmation_id,
+    account_email=x.account_email,account_password=x.account_password,tutorial_link=x.tutorial_link,
+    delivery_note=x.delivery_note where order_no=p_order;
+  return jsonb_build_object('success',true);
+end $$;
+revoke all on function public.update_order_delivery_v1(text,jsonb) from public,anon,authenticated;
+grant execute on function public.update_order_delivery_v1(text,jsonb) to service_role;
 commit;

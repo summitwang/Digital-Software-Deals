@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 function checkPassword(password: string) {
-  return password === process.env.ADMIN_PASSWORD;
+  return Boolean(process.env.ADMIN_PASSWORD) && typeof password === "string" && password === process.env.ADMIN_PASSWORD;
 }
 
 export async function POST(req: Request) {
@@ -45,21 +45,14 @@ export async function PATCH(req: Request) {
     delivery_note,
   } = body;
 
-  const { error } = await supabaseAdmin
-    .from("orders")
-    .update({
-      status,
-      product_type,
-      license_key,
-      error_code,
-      installation_id,
-      confirmation_id,
-      account_email,
-      account_password,
-      tutorial_link,
-      delivery_note,
-    })
-    .eq("order_no", order_no);
+  if (typeof order_no !== "string" || !order_no || typeof status !== "string") {
+    return NextResponse.json({ error: "Order and status are required" }, { status: 400 });
+  }
+  const { error } = await supabaseAdmin.rpc("update_order_delivery_v1", {
+    p_order: order_no,
+    p_patch: { status, product_type, license_key, error_code, installation_id,
+      confirmation_id, account_email, account_password, tutorial_link, delivery_note },
+  });
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });

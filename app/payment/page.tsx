@@ -15,22 +15,30 @@ function PaymentContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const product = searchParams.get("product") || "Unknown Product";
-  const amountFromUrl = Number(searchParams.get("amount") || "0");
-  const quantityFromUrl = Number(searchParams.get("quantity") || "1");
-  const stockFromUrl = Number(searchParams.get("stock") || "999");
-  const productType = searchParams.get("type") || "other";
+  const productId = searchParams.get("productId") || "";
+  const requestedQuantity = Number(searchParams.get("quantity") || "1");
+  const legacyTitle = searchParams.get("product") || "";
+  const [catalog, setCatalog] = useState<{id:string;title:string;price:number;stock:number;product_type:string} | null>(null);
+  const [catalogError, setCatalogError] = useState("");
+  const [quantity, setQuantity] = useState(1);
+  const product = catalog?.title || "Loading product…";
+  const productType = catalog?.product_type || "other";
+  const maxStock = catalog?.stock || 0;
+  const unitPrice = catalog?.price || 0;
+  const totalAmount = Math.round((catalog?.price || 0) * 100) * quantity / 100;
+  const canPay = Boolean(catalog && maxStock >= quantity && quantity >= 1);
 
-  const maxStock = stockFromUrl > 0 ? stockFromUrl : 1;
-
-  const [quantity, setQuantity] = useState(
-    Math.min(quantityFromUrl > 0 ? quantityFromUrl : 1, maxStock)
-  );
-
-  const unitPrice =
-    quantityFromUrl > 0 ? amountFromUrl / quantityFromUrl : amountFromUrl;
-
-  const totalAmount = unitPrice * quantity;
+  useEffect(() => {
+    const controller = new AbortController();
+    setCatalog(null);
+    setCatalogError("");
+    const params = new URLSearchParams(productId ? {productId} : {product:legacyTitle});
+    fetch(`/api/checkout-product?${params}`, {signal:controller.signal,cache:"no-store"})
+      .then(async res => { const data = await res.json(); if (!res.ok) throw new Error(data.error); return data.product; })
+      .then(item => { setCatalog(item); setQuantity(Number.isSafeInteger(requestedQuantity) && requestedQuantity > 0 ? Math.min(requestedQuantity, Math.max(1,item.stock)) : 1); })
+      .catch(error => { if (error.name !== "AbortError") setCatalogError(error.message || "Unable to load product."); });
+    return () => controller.abort();
+  }, [productId, legacyTitle, requestedQuantity]);
 
   const [form, setForm] = useState({
     customer_name: "",
@@ -77,6 +85,7 @@ function PaymentContent() {
   }
 
   async function payWithCrypto() {
+    if (!canPay || !catalog) return;
     if (!form.customer_email) {
       alert("Please enter email address first");
       return;
@@ -96,6 +105,7 @@ function PaymentContent() {
       method: "POST",
       headers: token ? { Authorization: `Bearer ${token}` } : {},
       body: JSON.stringify({
+        product_id: catalog.id,
         product,
         amount: money(totalAmount),
         quantity,
@@ -118,6 +128,7 @@ function PaymentContent() {
   }
 
   async function submitManualOrder() {
+    if (!canPay || !catalog) return;
     if (quantity > maxStock) {
       alert(`Only ${maxStock} item(s) available in stock.`);
       return;
@@ -137,6 +148,7 @@ function PaymentContent() {
       method: "POST",
       headers: token ? { Authorization: `Bearer ${token}` } : {},
       body: JSON.stringify({
+        product_id: catalog.id,
         product,
         amount: money(totalAmount),
         quantity,
@@ -167,6 +179,8 @@ function PaymentContent() {
 
         <div className="mt-6 bg-white border rounded-3xl p-8 shadow-xl">
           <h1 className="text-3xl font-extrabold mb-2">Crypto Payment</h1>
+          {catalogError && <p role="alert" className="text-red-700 my-4">{catalogError} <Link href="/products" className="underline">Browse products</Link></p>}
+          {catalog && !maxStock && <p role="status" className="text-red-700 my-4">This product is out of stock.</p>}
 
           <p className="text-slate-600 mb-8">
             Pay with crypto automatically, or use manual USDT TRC20 backup.
@@ -249,7 +263,7 @@ function PaymentContent() {
 
             <button
               onClick={payWithCrypto}
-              disabled={cryptoLoading}
+              disabled={cryptoLoading || loading || !canPay}
               className="w-full bg-black hover:bg-slate-800 disabled:bg-slate-400 text-white font-extrabold py-4 rounded-xl transition"
             >
               {cryptoLoading ? "Creating payment..." : "Pay With Crypto"}
@@ -307,7 +321,7 @@ function PaymentContent() {
 
               <button
                 onClick={submitManualOrder}
-                disabled={loading}
+                disabled={loading || cryptoLoading || !canPay}
                 className="w-full bg-emerald-500 hover:bg-emerald-400 disabled:bg-slate-400 text-black font-extrabold py-4 rounded-xl transition"
               >
                 {loading ? "Submitting..." : "Submit Manual Payment"}

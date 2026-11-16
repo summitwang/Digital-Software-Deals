@@ -1,3 +1,4 @@
+import { authorizeOrder } from "@/lib/orderAuthorization";
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
@@ -12,6 +13,9 @@ export async function GET(req: Request) {
     );
   }
 
+  const access = await authorizeOrder(req, orderNo);
+  if (access.error) return NextResponse.json({ error: access.error }, { status: access.status });
+
   const { data, error } = await supabaseAdmin
     .from("orders")
     .select(
@@ -24,20 +28,30 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Order not found" }, { status: 404 });
   }
 
-  return NextResponse.json({ order: data });
+  return NextResponse.json({ order: data }, { headers: { "Cache-Control": "private, no-store" } });
 }
 
 export async function PATCH(req: Request) {
-  const body = await req.json();
+  let body;
+  try { body = await req.json(); } catch {
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+  }
+  if (!body || typeof body !== "object" || Array.isArray(body)) return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   const { order_no, error_code, installation_id } = body;
 
-  if (!order_no) {
+  if (typeof order_no !== "string" || !order_no || order_no.length > 100) {
     return NextResponse.json(
       { error: "Order number is required" },
       { status: 400 }
     );
   }
 
+  const access = await authorizeOrder(req, order_no);
+  if (access.error) return NextResponse.json({ error: access.error }, { status: access.status });
+  if ((error_code !== undefined && (typeof error_code !== "string" || error_code.length > 128)) ||
+      (installation_id !== undefined && (typeof installation_id !== "string" || installation_id.length > 512))) {
+    return NextResponse.json({ error: "Invalid activation details" }, { status: 400 });
+  }
   const { error } = await supabaseAdmin
     .from("orders")
     .update({

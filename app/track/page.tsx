@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { supabaseClient } from "@/lib/supabaseClient";
 
 type Order = {
   order_no: string;
@@ -44,6 +45,9 @@ function TrackContent() {
   const defaultOrderId =
     searchParams.get("orderId") || searchParams.get("order") || "";
 
+  const [email, setEmail] = useState("");
+  const [emailMessage, setEmailMessage] = useState("");
+  const [sendingEmail, setSendingEmail] = useState(false);
   const [orderNo, setOrderNo] = useState(defaultOrderId);
   const [order, setOrder] = useState<Order | null>(null);
   const [error, setError] = useState("");
@@ -64,7 +68,11 @@ function TrackContent() {
     setError("");
     setOrder(null);
 
-    const res = await fetch(`/api/track?orderNo=${encodeURIComponent(target)}`);
+    const { data: sessionData } = await supabaseClient.auth.getSession();
+    const res = await fetch(`/api/track?orderNo=${encodeURIComponent(target)}`, {
+      headers: { Authorization: `Bearer ${sessionData.session?.access_token || ""}` },
+      cache: "no-store",
+    });
     const data = await res.json();
 
     setLoading(false);
@@ -87,8 +95,10 @@ function TrackContent() {
       return;
     }
 
+    const { data: sessionData } = await supabaseClient.auth.getSession();
     const res = await fetch("/api/track", {
       method: "PATCH",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${sessionData.session?.access_token || ""}` },
       body: JSON.stringify({
         order_no: order.order_no,
         error_code: customerErrorCode,
@@ -105,6 +115,19 @@ function TrackContent() {
 
     alert("Information submitted successfully");
     searchOrder(order.order_no);
+  }
+
+  async function sendAccessEmail() {
+    if (sendingEmail || !email.trim()) return;
+    setSendingEmail(true);
+    try {
+      const { error } = await supabaseClient.auth.signInWithOtp({
+        email: email.trim(),
+        options: { emailRedirectTo: `${window.location.origin}/track?orderId=${encodeURIComponent(orderNo)}` },
+      });
+      setEmailMessage(error ? "Unable to send access email. Please try again later." : "Check your email for a sign-in link, then search for your order.");
+    } catch { setEmailMessage("Unable to send access email. Please try again later."); }
+    finally { setSendingEmail(false); }
   }
 
   useEffect(() => {
@@ -129,9 +152,16 @@ function TrackContent() {
           <h1 className="text-3xl font-extrabold mb-2">Track Your Order</h1>
 
           <p className="text-slate-600 mb-8">
-            Enter your order ID to check payment, activation and delivery status.
+            Sign in or verify the email used at checkout, then enter your order ID.
           </p>
 
+          <div className="mb-6 space-y-3">
+            <Link href="/account/login" className="text-blue-600 underline">Sign in to your account</Link>
+            <label className="block text-sm font-medium" htmlFor="order-email">Guest order email</label>
+            <input id="order-email" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full border rounded-xl p-3" placeholder="Email used at checkout" />
+            <button onClick={sendAccessEmail} disabled={sendingEmail || !email.trim()} className="border rounded-xl px-4 py-3 disabled:opacity-50">{sendingEmail ? "Sending..." : "Email me a sign-in link"}</button>
+            <p role="status" className="text-sm text-slate-600">{emailMessage}</p>
+          </div>
           <div className="flex flex-col md:flex-row gap-3 mb-6">
             <input
               className="flex-1 p-4 rounded-xl border border-slate-300 text-slate-900 outline-none focus:border-blue-500"

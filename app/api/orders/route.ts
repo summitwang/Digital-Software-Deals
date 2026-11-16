@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+import { checkoutQuantity, checkoutTotal } from "@/lib/checkoutPricing";
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
@@ -114,17 +116,22 @@ export async function POST(req: Request) {
   }
 
   const userId = await getUserIdFromRequest(req);
-  const body = await req.json();
+  let body;
+  try {
+    body = await req.json();
+    if (!body || typeof body !== "object" || Array.isArray(body)) throw new Error();
+  } catch {
+    return NextResponse.json({ error: "Invalid request body." }, { status: 400 });
+  }
 
   if (body.website) {
     return NextResponse.json({ error: "Spam detected." }, { status: 400 });
   }
 
   const {
-    product,
+    product_id,
     amount,
     quantity,
-    product_type,
     customer_name,
     customer_email,
     address,
@@ -133,10 +140,14 @@ export async function POST(req: Request) {
     screenshot_name,
   } = body;
 
-  const orderQuantity = Number(quantity || 1);
-  const expectedAmount = Number(amount);
+  let orderQuantity: number;
+  try {
+    orderQuantity = checkoutQuantity(quantity);
+  } catch (error) {
+    return NextResponse.json({ error: (error as Error).message }, { status: 400 });
+  }
 
-  if (!product || !amount || !customer_email || !txid || !screenshot_base64) {
+  if ((typeof product_id !== "string" || !product_id || product_id.length > 128) || !amount || !customer_email || !txid || !screenshot_base64) {
     return NextResponse.json(
       { error: "Email, TxID and payment screenshot are required." },
       { status: 400 }
@@ -152,8 +163,8 @@ export async function POST(req: Request) {
 
   const { data: productData, error: productError } = await supabaseAdmin
     .from("products")
-    .select("id, stock")
-    .eq("title", product)
+    .select("id, title, stock, price, promo_price, product_type")
+    .eq("id", product_id)
     .eq("is_active", true)
     .maybeSingle();
 
@@ -161,11 +172,12 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Product not found." }, { status: 404 });
   }
 
-  if (Number(productData.stock || 0) < orderQuantity) {
-    return NextResponse.json(
-      { error: "Not enough stock available." },
-      { status: 400 }
-    );
+  const product = productData.title;
+  let expectedAmount: number;
+  try {
+    expectedAmount = checkoutTotal(productData, orderQuantity, amount);
+  } catch (error) {
+    return NextResponse.json({ error: (error as Error).message }, { status: 400 });
   }
 
   const { data: existingTx } = await supabaseAdmin
@@ -187,7 +199,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: verifyResult.error }, { status: 400 });
   }
 
-  const order_no = "ORD-" + Date.now();
+  const order_no = "ORD-" + randomUUID();
   let payment_screenshot_url = "";
 
   try {
@@ -220,48 +232,16 @@ export async function POST(req: Request) {
     );
   }
 
-  const newStock = Number(productData.stock || 0) - orderQuantity;
-
-  const { error: stockError } = await supabaseAdmin
-    .from("products")
-    .update({ stock: newStock })
-    .eq("id", productData.id);
-
-  if (stockError) {
-    return NextResponse.json({ error: stockError.message }, { status: 500 });
-  }
-
-  const { data, error } = await supabaseAdmin
-    .from("orders")
-    .insert([
-      {
-        user_id: userId,
-        order_no,
-        product,
-        amount: expectedAmount,
-        quantity: orderQuantity,
-        product_type: product_type || "",
-        customer_name,
-        customer_email,
-        address,
-        txid,
-        payment_screenshot_url,
-        status: "paid",
-        stock_deducted: true,
-        delivery_note: `USDT payment verified automatically. Paid amount: ${verifyResult.paidAmount} USDT`,
-      },
-    ])
-    .select()
-    .single();
-
+  const { data, error } = await supabaseAdmin.rpc("create_verified_order_v1", {
+    p_order: {
+      user_id: userId, order_no, product, product_ref: String(productData.id), amount: expectedAmount,
+      quantity: orderQuantity, customer_name, customer_email, address, txid,
+      payment_screenshot_url,
+    },
+  });
   if (error) {
-    await supabaseAdmin
-      .from("products")
-      .update({ stock: Number(productData.stock || 0) })
-      .eq("id", productData.id);
-
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    // 不恢复旧库存快照：事务失败已自动回滚，覆盖旧值会破坏并发订单。
+    return NextResponse.json({ error: "Order could not be saved. Contact support with your TxID before resubmitting payment." }, { status: 409 });
   }
-
   return NextResponse.json({ success: true, order: data });
 }

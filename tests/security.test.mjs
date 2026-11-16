@@ -1,0 +1,13 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { createHmac } from 'node:crypto';
+import { canReadOrder } from '../lib/orderAccess.ts';
+import { verifyPaymentSignature } from '../lib/paymentSignature.ts';
+const buyer = {id:'buyer',email:'buyer@example.com',email_confirmed_at:'2026-11-15'};
+test('bound orders require the owning identity even with matching email',()=>{assert.equal(canReadOrder(buyer,{user_id:'other',customer_email:buyer.email}),false);assert.equal(canReadOrder(buyer,{user_id:'buyer'}),true);});
+test('guest orders require verified matching email',()=>{assert.equal(canReadOrder(buyer,{customer_email:'BUYER@example.com'}),true);assert.equal(canReadOrder({...buyer,email_confirmed_at:null},{customer_email:buyer.email}),false);assert.equal(canReadOrder(buyer,{customer_email:'other@example.com'}),false);assert.equal(canReadOrder({id:'buyer'},{}),false);});
+const raw='{"payment_status":"finished","order_id":"ORD-test"}';
+const signature=createHmac('sha512','test-secret').update('{"order_id":"ORD-test","payment_status":"finished"}').digest('hex');
+test('accepts correctly signed canonical payload',()=>assert.equal(verifyPaymentSignature(raw,signature,'test-secret'),true));
+test('fails closed for absent secret, absent or malformed signature and bad JSON',()=>{assert.equal(verifyPaymentSignature(raw,signature,undefined),false);for(const sig of [null,'','00','z'.repeat(128)]) assert.equal(verifyPaymentSignature(raw,sig,'test-secret'),false);assert.equal(verifyPaymentSignature('{',signature,'test-secret'),false);});
+test('rejects tampering and incorrect secrets',()=>{assert.equal(verifyPaymentSignature(raw.replace('finished','waiting'),signature,'test-secret'),false);assert.equal(verifyPaymentSignature(raw,signature,'wrong'),false);});

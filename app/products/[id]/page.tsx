@@ -139,11 +139,7 @@ export default function ProductDetailPage() {
           </div>
 
           <Link
-            href={`/payment?product=${encodeURIComponent(
-              product.title
-            )}&amount=${encodeURIComponent(
-              String(finalPrice)
-            )}&type=${encodeURIComponent(product.product_type || "other")}`}
+            href={`/payment?productId=${encodeURIComponent(String(product.id))}&quantity=1`}
             className="block text-center bg-black text-white py-5 rounded-2xl font-extrabold text-lg hover:bg-slate-800"
           >
             Buy Now

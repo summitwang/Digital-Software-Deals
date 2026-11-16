@@ -16,17 +16,12 @@ export async function GET(req: Request) {
   }
 
   const userId = userData.user.id;
-  const email = userData.user.email || "";
-
-  const { data, error } = await supabaseAdmin
-    .from("orders")
-    .select("*")
-    .or(`user_id.eq.${userId},customer_email.eq.${email}`)
-    .order("created_at", { ascending: false });
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-
-  return NextResponse.json({ orders: data || [] });
+  // 分开查询，避免将邮箱插入 PostgREST 过滤表达式；游客记录要求邮箱已验证。
+  const owned = await supabaseAdmin.from("orders").select("*").eq("user_id", userId);
+  const guest = userData.user.email_confirmed_at && userData.user.email
+    ? await supabaseAdmin.from("orders").select("*").is("user_id", null).eq("customer_email", userData.user.email)
+    : { data: [], error: null };
+  if (owned.error || guest.error) return NextResponse.json({ error: "Unable to load orders" }, { status: 503 });
+  const orders = [...(owned.data || []), ...(guest.data || [])].sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
+  return NextResponse.json({ orders }, { headers: { "Cache-Control": "private, no-store" } });
 }
